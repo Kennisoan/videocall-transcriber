@@ -1,0 +1,11 @@
+.detail {
+  color: var(--color-text);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail_label {
+  font-size: var(--font-size-secondary);
+  color: var(--color-text-60);
+}

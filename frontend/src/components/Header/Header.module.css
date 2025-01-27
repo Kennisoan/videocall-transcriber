@@ -1,0 +1,36 @@
+.body {
+  position: sticky;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 24px;
+  top: 0;
+  left: 0;
+  width: calc(100% + 44px);
+  margin-left: -22px;
+  padding: 32px 22px;
+  background: linear-gradient(
+    rgba(255, 255, 255, 1) 75%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  font-weight: 700;
+  z-index: 2;
+}
+
+.leading {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+}
+
+.subtitle {
+  white-space: nowrap;
+  font-weight: 500;
+  color: var(--color-text-50);
+}
+
+.separator {
+  font-weight: 500;
+  color: var(--color-text-25);
+}

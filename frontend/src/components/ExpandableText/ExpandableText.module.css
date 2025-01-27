@@ -1,0 +1,29 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.content {
+  color: var(--color-text);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+.toggle {
+  display: flex;
+  background-color: transparent;
+  padding: 0;
+  margin: 0;
+  border: none;
+  width: fit-content;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-link);
+  text-decoration: none;
+  user-select: none;
+  cursor: pointer;
+}

@@ -1,0 +1,33 @@
+{
+  "name": "video-call-transcriber-frontend",
+  "version": "1.0.0",
+  "dependencies": {
+    "@headlessui/react": "^2.2.0",
+    "axios": "^1.3.5",
+    "date-fns": "^4.1.0",
+    "framer-motion": "^11.17.0",
+    "new-component": "5.0.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-feather": "^2.0.10",
+    "react-scripts": "5.0.1",
+    "swr": "^2.3.0"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "new-component": "new-component"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

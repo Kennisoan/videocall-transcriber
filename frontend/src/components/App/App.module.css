@@ -1,0 +1,12 @@
+.wrapper {
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+}
+
+.placeholder {
+  margin: 45vh auto;
+  color: var(--color-text-50);
+  text-align: center;
+  line-height: 1.3;
+}
