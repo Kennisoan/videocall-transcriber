@@ -1,0 +1,13 @@
+python-dotenv==1.0.0
+selenium==4.16.0
+slack-sdk==3.26.1
+pyaudio==0.2.14
+soundfile==0.12.1
+psutil==5.9.7
+numpy==2.2.2
+sqlalchemy==2.0.37
+psycopg2-binary==2.9.10
+openai==1.60.1
+google-auth-oauthlib>=1.2.0
+google-auth-httplib2>=0.2.0
+google-api-python-client>=2.120.0
