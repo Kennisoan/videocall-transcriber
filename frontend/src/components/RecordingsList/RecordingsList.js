@@ -1,12 +1,14 @@
 import React from 'react';
 import useSWR from 'swr';
-import RecordingCard from '../RecordingCard';
+
 import { parseISO, formatISO } from 'date-fns';
 
 const fetcher = (...args) => fetch(...args).then((res) => res.json());
 
+import RecordingCard from '../RecordingCard';
 import Container from '../Container';
 import Header from '../Header';
+import { Plus } from 'react-feather';
 
 import styles from './RecordingsList.module.css';
 
@@ -33,7 +35,9 @@ function RecordingsList() {
 
   return (
     <Container className={styles.wrapper}>
-      <Header>Записи звонков</Header>
+      <Header trailing={<NewRecordingButton />}>
+        Записи звонков
+      </Header>
       <div className={styles.recordings}>
         {sortedRecordings.length === 0 ? (
           <div className={styles.placeholder}>
@@ -46,6 +50,15 @@ function RecordingsList() {
         )}
       </div>
     </Container>
+  );
+}
+
+function NewRecordingButton() {
+  return (
+    <button className={styles.newRecordingButton}>
+      <Plus size={14} strokeWidth={2.3} />
+      Записать звонок
+    </button>
   );
 }
 

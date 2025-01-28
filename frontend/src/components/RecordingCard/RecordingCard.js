@@ -32,12 +32,18 @@ function handleDelete(recording) {
 
 function RecordingCard({ recording }) {
   const formattedDate = formatRecordingName(recording.created_at);
+  const source =
+    recording.source === 'google_meet' ? 'Google Meet' : 'Slack';
 
   return (
     <Card className={styles.card}>
       {/* Card Header */}
       <div className={styles.header}>
-        <div className={styles.title}>{formattedDate}</div>
+        <div className={styles.title}>
+          {formattedDate}
+          <span className={styles.title_separator}>∙</span>
+          <span className={styles.title_secondary}>{source}</span>
+        </div>
         <div className={styles.controls}>
           <Dropdown
             trigger={<HeaderButton icon={<MoreHorizontal />} />}

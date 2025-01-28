@@ -24,10 +24,17 @@
   flex-direction: row;
 }
 
-.control_separator {
-  opacity: 0.1;
+.title_separator {
+  font-weight: 400;
+  opacity: 0.25;
   color: var(--color-text-100);
-  padding: 0 4px;
+  padding: 0 6px;
+  user-select: none;
+}
+
+.title_secondary {
+  font-weight: 400;
+  color: var(--color-text-50);
   user-select: none;
 }
 
@@ -60,9 +67,10 @@
   align-items: center;
   gap: 6px;
   color: var(--color-link);
-  text-decoration: none;
+  text-decoration-color: transparent;
   user-select: none;
   cursor: pointer;
+  transition: text-decoration-color 0.1s ease;
 }
 
 .link:hover {

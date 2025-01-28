@@ -1,6 +1,8 @@
 .wrapper {
   margin: 0 auto;
   max-width: 600px;
+  padding-bottom: 20vh;
+  overflow-x: hidden;
 }
 
 .recordings {
@@ -11,4 +13,27 @@
 
 .placeholder {
   color: #888;
+}
+
+.newRecordingButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: transparent;
+  border: none;
+  color: var(--color-primary);
+  padding: 4px 0;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.newRecordingButton:hover {
+  padding: 4px 10px;
+  background-color: var(--color-secondary);
+  cursor: pointer;
+}
+
+.newRecordingButton:active {
+  transform: scale(0.96);
 }
