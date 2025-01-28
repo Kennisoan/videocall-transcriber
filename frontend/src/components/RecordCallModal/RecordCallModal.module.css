@@ -1,0 +1,58 @@
+.title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.description {
+  color: var(--color-text);
+  line-height: 1.4;
+}
+.google_meet_input {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.google_meet_invite_button {
+  margin: 0;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 14px;
+  background-color: var(--color-primary);
+  color: #fff;
+  line-height: 1;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.google_meet_invite_button:active {
+  transform: scale(0.98);
+}
+
+.google_meet_invite_button:disabled {
+  background-color: var(--color-border);
+  color: var(--color-text-40);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.divider {
+  margin: 22px 0;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.error {
+  color: #ff424d;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+.success {
+  color: #059669;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
