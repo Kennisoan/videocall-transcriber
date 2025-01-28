@@ -55,8 +55,11 @@ yarn-error.log*
 .cursorignore
 
 # Project specific
-/recorder/recordings/
-/recorder/.session/
+/slack_recorder/recordings/
+/slack_recorder/.session/
+/google_recorder/recordings/
+/google_recorder/.session/
+
 *.wav
 *.mp3
 *.m4a
