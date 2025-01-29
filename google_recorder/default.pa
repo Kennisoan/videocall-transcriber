@@ -1,0 +1,17 @@
+#!/usr/bin/pulseaudio -nF
+
+# Load system-wide protocols
+load-module module-native-protocol-unix
+load-module module-dbus-protocol
+
+# Create a virtual microphone sink and source
+load-module module-null-sink sink_name=virtual-mic sink_properties=device.description=virtual-mic
+load-module module-remap-source source_name=virtual-mic-out master=virtual-mic.monitor source_properties=device.description=virtual-mic-out
+
+# Set default devices
+set-default-sink virtual-mic
+set-default-source virtual-mic-out
+
+# Load audio drivers
+load-module module-udev-detect
+load-module module-alsa-card 
