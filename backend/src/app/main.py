@@ -1,14 +1,17 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from . import crud, models, schemas
 from .database import Base, engine, get_db
 import os
+from pydantic import BaseModel
+import requests
+from typing import Optional
 
 app = FastAPI()
 
-# Configure CORS
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:1234",
@@ -17,6 +20,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+GLOBAL_PASSWORD = os.environ.get("APP_GLOBAL_PASSWORD", "supersecret")
+# This should be more secure in production
+AUTH_TOKEN = os.environ.get("AUTH_TOKEN", "myauthtoken")
+
+
+class MeetLinkRequest(BaseModel):
+    meet_url: str
+
+
+def verify_token(x_token: Optional[str] = Header(None)):
+    if not x_token or x_token != AUTH_TOKEN:
+        raise HTTPException(status_code=403, detail="Not authenticated")
+    return x_token
 
 
 @app.on_event("startup")
@@ -30,14 +47,13 @@ def root():
 
 
 @app.get("/recordings/", response_model=list[schemas.Recording])
-def list_recordings(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def list_recordings(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(verify_token)):
     recordings = crud.get_recordings(db, skip=skip, limit=limit)
-    # Convert SQLAlchemy models to Pydantic models
     return [schemas.Recording.from_orm(recording) for recording in recordings]
 
 
 @app.get("/recordings/{recording_id}/audio")
-def get_recording_audio(recording_id: int, db: Session = Depends(get_db)):
+def get_recording_audio(recording_id: int, db: Session = Depends(get_db), token: str = Depends(verify_token)):
     recording = crud.get_recording(db, recording_id=recording_id)
     if recording is None:
         raise HTTPException(status_code=404, detail="Recording not found")
@@ -54,8 +70,7 @@ def get_recording_audio(recording_id: int, db: Session = Depends(get_db)):
 
 
 @app.get("/recordings/{recording_id}/transcript")
-def get_recording_transcript(recording_id: int, db: Session = Depends(get_db)):
-    """Download the transcript of a recording as a text file"""
+def get_recording_transcript(recording_id: int, db: Session = Depends(get_db), token: str = Depends(verify_token)):
     recording = crud.get_recording(db, recording_id=recording_id)
     if recording is None:
         raise HTTPException(status_code=404, detail="Recording not found")
@@ -64,8 +79,7 @@ def get_recording_transcript(recording_id: int, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=404, detail="No transcript available for this recording")
 
-    # Create a temporary file with the transcript
-    temp_dir = "/tmp"  # Use system temp directory
+    temp_dir = "/tmp"
     os.makedirs(temp_dir, exist_ok=True)
     temp_filename = os.path.join(temp_dir, f"transcript_{recording_id}.txt")
 
@@ -76,18 +90,16 @@ def get_recording_transcript(recording_id: int, db: Session = Depends(get_db)):
         temp_filename,
         media_type="text/plain",
         filename=f"transcript_{recording.filename}.txt",
-        background=lambda: os.remove(temp_filename)  # Clean up after sending
+        background=lambda: os.remove(temp_filename)
     )
 
 
 @app.delete("/recordings/{recording_id}", response_model=schemas.DeleteResponse)
-def delete_recording(recording_id: int, db: Session = Depends(get_db)):
-    """Delete a recording and its associated files"""
+def delete_recording(recording_id: int, db: Session = Depends(get_db), token: str = Depends(verify_token)):
     recording = crud.get_recording(db, recording_id=recording_id)
     if recording is None:
         raise HTTPException(status_code=404, detail="Recording not found")
 
-    # Delete the audio file first
     file_path = os.path.join("/recordings", recording.filename)
     try:
         if os.path.exists(file_path):
@@ -96,9 +108,32 @@ def delete_recording(recording_id: int, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=500, detail=f"Failed to delete audio file: {str(e)}")
 
-    # Delete from database using CRUD operation
     if not crud.delete_recording(db, recording_id):
         raise HTTPException(
             status_code=500, detail="Failed to delete recording from database")
 
     return {"message": "Recording deleted successfully"}
+
+
+@app.post("/start_recording")
+def forward_recording_request(request: MeetLinkRequest, token: str = Depends(verify_token)):
+    recorder_api_url = "http://meet_recorder:8001/join"
+    try:
+        r = requests.post(recorder_api_url, json={
+                          "meet_url": request.meet_url})
+        r.raise_for_status()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Could not forward recording request: {str(e)}")
+    return r.json()
+
+
+class LoginRequest(BaseModel):
+    password: str
+
+
+@app.post("/login")
+def login(credentials: LoginRequest):
+    if credentials.password == GLOBAL_PASSWORD:
+        return {"token": AUTH_TOKEN}
+    raise HTTPException(status_code=401, detail="Incorrect password")
