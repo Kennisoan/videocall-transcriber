@@ -1,8 +1,21 @@
 import React, { useState } from 'react';
 import Modal from '../Modal';
 import TextInput from '../TextInput';
-
+import axios from 'axios';
 import styles from './RecordCallModal.module.css';
+
+// Create axios instance with auth token
+const api = axios.create({
+  baseURL: 'http://localhost:8000',
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    config.headers['x-token'] = token;
+  }
+  return config;
+});
 
 function RecordCallModal({ as }) {
   const [meetLink, setMeetLink] = useState('');
@@ -14,7 +27,7 @@ function RecordCallModal({ as }) {
     return meetRegex.test(link);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateGoogleMeetLink(meetLink)) {
@@ -22,13 +35,32 @@ function RecordCallModal({ as }) {
       return;
     }
 
-    setIsSubmitted(true);
     setError('');
-    // Make an API call to handle the meet link
+
+    try {
+      const response = await api.post('/start_recording', {
+        meet_url: meetLink,
+      });
+      setIsSubmitted(true);
+    } catch (err) {
+      console.error('Error starting recording:', err);
+      setError(
+        'Ошибка при запуске записи: ' +
+          (err.response?.data?.detail || err.message)
+      );
+    }
   };
 
   return (
-    <Modal root={as} title="Записать звонок">
+    <Modal
+      root={as}
+      onClose={() => {
+        setIsSubmitted(false);
+        setError('');
+        setMeetLink('');
+      }}
+      title="Записать звонок"
+    >
       <h3 className={styles.title}>Звонок в Google Meet</h3>
       <p className={styles.description}>
         Вставьте ссылку на звонок ниже, и бот присоединится и запишет
@@ -39,7 +71,7 @@ function RecordCallModal({ as }) {
           <TextInput
             value={meetLink}
             onChange={(e) => setMeetLink(e.target.value)}
-            placeholder="https://meet.google.com/xxx-xxx-xxx"
+            placeholder="https://meet.google.com/xxx-xxxx-xxx"
             disabled={isSubmitted}
           />
           <button

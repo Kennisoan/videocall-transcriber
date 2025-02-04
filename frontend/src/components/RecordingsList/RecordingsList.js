@@ -1,20 +1,33 @@
 import React from 'react';
 import useSWR from 'swr';
-
 import { parseISO, formatISO } from 'date-fns';
-
-const fetcher = (...args) => fetch(...args).then((res) => res.json());
-
 import RecordingCard from '../RecordingCard';
 import Container from '../Container';
 import Header from '../Header';
+import RecordCallModal from '../RecordCallModal/RecordCallModal';
 import { Plus } from 'react-feather';
-
+import axios from 'axios';
 import styles from './RecordingsList.module.css';
+
+// Create axios instance with auth token
+const api = axios.create({
+  baseURL: 'http://localhost:8000',
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    config.headers['x-token'] = token;
+  }
+  return config;
+});
+
+// Custom fetcher using axios
+const fetcher = (url) => api.get(url).then((res) => res.data);
 
 function RecordingsList() {
   const { data: recordings, error } = useSWR(
-    'http://localhost:8000/recordings/',
+    '/recordings/',
     fetcher,
     {
       refreshInterval: 5000,
@@ -55,10 +68,14 @@ function RecordingsList() {
 
 function NewRecordingButton() {
   return (
-    <button className={styles.newRecordingButton}>
-      <Plus size={14} strokeWidth={2.3} />
-      Записать звонок
-    </button>
+    <RecordCallModal
+      as={
+        <button className={styles.newRecordingButton}>
+          <Plus size={14} strokeWidth={2.3} />
+          Записать звонок
+        </button>
+      }
+    />
   );
 }
 
