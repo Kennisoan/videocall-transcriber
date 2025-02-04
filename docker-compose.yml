@@ -1,17 +1,32 @@
+version: '3.8'
 services:
-  db:
-    image: postgres:15-alpine
-    container_name: vct_db
+  meet_recorder:
+    build: ./google_recorder
+    container_name: meet_recorder
+    env_file: ./google_recorder/.env
+    environment:
+      POSTGRES_HOST: postgres
+      CHROME_BIN: /usr/bin/google-chrome-stable
+      CHROMEDRIVER_PATH: /usr/bin/chromedriver
+    networks:
+      - vct_network
+    volumes:
+      - recordings_data:/home/pulse/app/recordings
+    depends_on:
+      - postgres
+  postgres:
+    image: postgres:15
+    container_name: postgres
     environment:
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypassword
       POSTGRES_DB: mydatabase
-    volumes:
-      - db_data:/var/lib/postgresql/data
-    ports:
-      - '5432:5432'
     networks:
       - vct_network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
 
   backend:
     build:
@@ -20,11 +35,11 @@ services:
     env_file:
       - .env
     depends_on:
-      - db
+      - postgres
     expose:
       - '8000'
     volumes:
-      - ./recorder/recordings:/recordings
+      - recordings_data:/recordings
     networks:
       - vct_network
     command: uvicorn src.app.main:app --host 0.0.0.0 --port 8000
@@ -82,11 +97,12 @@ services:
     profiles:
       - production
 
-volumes:
-  db_data:
-
 networks:
   vct_network:
     driver: bridge
     driver_opts:
       com.docker.network.driver.mtu: 1450
+
+volumes:
+  postgres_data:
+  recordings_data:
