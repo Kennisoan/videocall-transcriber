@@ -1,0 +1,29 @@
+#!/usr/bin/env sh
+# Load system defaults
+.include /etc/pulse/system.pa
+
+# Load protocol
+load-module module-native-protocol-unix auth-anonymous=1
+
+# Create virtual output sink
+load-module module-null-sink sink_name=virtual_output sink_properties='device.description="Virtual_Output"' channels=2 rate=44100 format=s16le buffer_size=8192
+
+# Create virtual monitor source (for recording)
+load-module module-null-sink sink_name=virtual_monitor sink_properties='device.description="Virtual_Monitor"' channels=2 rate=44100 format=s16le buffer_size=8192
+
+# Create loopback from output to monitor (connect output to input)
+load-module module-loopback source=virtual_output.monitor sink=virtual_monitor latency_msec=1 channels=1
+
+# Set default devices
+set-default-sink virtual_output
+set-default-source virtual_monitor.monitor
+
+# Load restore modules
+load-module module-device-restore
+load-module module-stream-restore restore_device=false
+load-module module-card-restore
+
+# Optionally load driver modules (disabled to prevent secure directory errors)
+#.ifexists module-udev-detect.so
+#load-module module-udev-detect
+#.endif 

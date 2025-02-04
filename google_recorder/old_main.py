@@ -31,8 +31,8 @@ load_dotenv()
 
 
 class GoogleMeetRecorder:
-    def __init__(self, headless=True):
-        self.meet_url = None
+    def __init__(self, meet_url, headless=True):
+        self.meet_url = meet_url
         self.driver = None
         self.recording = False
         self.recorder_thread = None
@@ -47,6 +47,7 @@ class GoogleMeetRecorder:
 
         # Create directories
         os.makedirs('recordings', exist_ok=True)
+        os.makedirs('.session', exist_ok=True)
 
         try:
             self._initialize_browser()
@@ -65,7 +66,6 @@ class GoogleMeetRecorder:
         """Initialize or reinitialize the Chrome browser with appropriate options"""
         options = webdriver.ChromeOptions()
 
-        # Basic options
         options.add_argument('--use-fake-ui-for-media-stream')
         options.add_argument('--window-size=1920,1080')
         options.add_argument('--no-sandbox')
@@ -74,105 +74,73 @@ class GoogleMeetRecorder:
         options.add_argument('--disable-software-rasterizer')
         options.add_argument('--autoplay-policy=no-user-gesture-required')
 
+        # Chrome session persistence
+        user_data_dir = os.path.abspath('.session/chrome_data')
+        os.makedirs(user_data_dir, exist_ok=True)
+        options.add_argument(f'--user-data-dir={user_data_dir}')
+
         if self.headless:
             options.add_argument('--headless=new')
-            options.add_argument(
-                '--disable-blink-features=AutomationControlled')
 
-        # Chrome binary and ChromeDriver with platform-specific defaults
-        if sys.platform == "darwin":
-            chrome_binary = os.environ.get(
-                'CHROME_BIN', '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')
-            chromedriver_path = os.environ.get(
-                'CHROMEDRIVER_PATH', '/opt/homebrew/bin/chromedriver')
+        # Chrome binary and ChromeDriver
+        chrome_binary = os.environ.get('CHROME_BIN')
+        if chrome_binary:
+            options.binary_location = chrome_binary
+
+        chromedriver_path = os.environ.get('CHROMEDRIVER_PATH')
+        if chromedriver_path:
+            self.driver = webdriver.Chrome(
+                executable_path=chromedriver_path, options=options)
         else:
-            chrome_binary = os.environ.get('CHROME_BIN', '/usr/bin/chromium')
-            chromedriver_path = os.environ.get(
-                'CHROMEDRIVER_PATH', '/usr/bin/chromedriver')
+            self.driver = webdriver.Chrome(options=options)
 
-        options.binary_location = chrome_binary
-        options.add_argument('--browser-binary=' + chrome_binary)
-
-        from selenium.webdriver.chrome.service import Service
-        service = Service(executable_path=chromedriver_path)
-        service.creation_flags = 0  # Ensure no special flags are set
-        self.driver = webdriver.Chrome(service=service, options=options)
-
-        logger.info(
-            f"Browser initialized in {'headless' if self.headless else 'normal'} mode")
+        logger.info(f"Browser initialized in {
+                    'headless' if self.headless else 'normal'} mode")
 
     def login_to_google(self):
         """Login to Google account"""
         try:
+            # First try to access Google Meet to check if we're already logged in
             self.driver.get('https://meet.google.com')
-            self.driver.find_element(By.CSS_SELECTOR, '[data-noaft]')
-            logger.info("Already logged into Google account")
-            return
-        except Exception:
-            logger.info("No active Google session found")
+            time.sleep(3)  # Give it a moment to load/redirect
 
-            # Get credentials from environment
-            email = os.getenv('GOOGLE_EMAIL')
-            password = os.getenv('GOOGLE_PASSWORD')
-
-            if not email or not password:
-                raise Exception(
-                    "GOOGLE_EMAIL and GOOGLE_PASSWORD environment variables must be set")
-
-            logger.info("Starting automated login sequence...")
-            self.driver.get('https://accounts.google.com')
-
-            # Enter email
+            # Check if we're on the login page by looking for the login button
             try:
-                email_input = WebDriverWait(self.driver, 10).until(
-                    EC.presence_of_element_located(
-                        (By.CSS_SELECTOR, 'input[type="email"]'))
-                )
-                email_input.clear()
-                email_input.send_keys(email)
-                email_input.send_keys(webdriver.Keys.RETURN)
-                logger.info("Email entered successfully")
+                self.driver.find_element(By.CSS_SELECTOR, '[data-noaft]')
+                logger.info("Already logged into Google account")
+                return
+            except:
+                logger.info(
+                    "No active Google session found, manual login required")
 
-                # Wait for email page to be processed
-                WebDriverWait(self.driver, 10).until(
-                    EC.invisibility_of_element_located(
-                        (By.CSS_SELECTOR, 'input[type="email"]'))
-                )
-            except Exception as e:
-                raise Exception(f"Failed to enter email: {str(e)}")
+                # Go to Google login page
+                self.driver.get('https://accounts.google.com')
 
-            # Enter password
-            try:
-                # Wait for password field to be both present AND interactable
-                password_input = WebDriverWait(self.driver, 10).until(
-                    EC.element_to_be_clickable(
-                        (By.CSS_SELECTOR, 'input[type="password"]'))
-                )
-                password_input.clear()
-                password_input.send_keys(password)
-                password_input.send_keys(webdriver.Keys.RETURN)
-                logger.info("Password entered successfully")
-            except Exception as e:
-                raise Exception(f"Failed to enter password: {str(e)}")
+                print("\nPlease log in manually in the browser window.")
+                print("After logging in, press Enter to continue...")
+                input()
 
-            # Verify login success
-            time.sleep(5)
-            self.driver.get('https://meet.google.com')
-            try:
-                WebDriverWait(self.driver, 10).until(
-                    EC.presence_of_element_located(
-                        (By.CSS_SELECTOR, '[data-noaft]'))
-                )
-                logger.info("Successfully logged into Google account")
-            except Exception:
-                raise Exception("Login failed.")
+                # Verify login was successful
+                self.driver.get('https://meet.google.com')
+                try:
+                    WebDriverWait(self.driver, 10).until(
+                        EC.presence_of_element_located(
+                            (By.CSS_SELECTOR, '[data-noaft]'))
+                    )
+                    logger.info("Successfully logged into Google account")
+                except:
+                    raise Exception(
+                        "Login verification failed. Please try again.")
 
-    def join_meet(self, meet_url: str):
-        """Join a Google Meet call using the provided meeting URL"""
-        self.meet_url = meet_url
+        except Exception as e:
+            logger.error(f"Failed to handle Google login: {str(e)}")
+            raise
+
+    def join_meet(self):
+        """Join a Google Meet call"""
         try:
-            logger.info(f"Joining meet: {meet_url}")
-            self.driver.get(meet_url)
+            logger.info(f"Joining meet: {self.meet_url}")
+            self.driver.get(self.meet_url)
 
             # Wait for and click the join button
             join_button = WebDriverWait(self.driver, 20).until(
@@ -189,7 +157,7 @@ class GoogleMeetRecorder:
                     By.CSS_SELECTOR, "[aria-label='Turn off microphone']")
                 mic_button.click()
                 logger.info("Turned off microphone")
-            except Exception:
+            except:
                 logger.info("Microphone already off or button not found")
 
             try:
@@ -197,10 +165,10 @@ class GoogleMeetRecorder:
                     By.CSS_SELECTOR, "[aria-label='Turn off camera']")
                 camera_button.click()
                 logger.info("Turned off camera")
-            except Exception:
+            except:
                 logger.info("Camera already off or button not found")
 
-            # Wait to be admitted to the meeting
+            # Wait to be let into the meeting
             logger.info("Waiting to be admitted...")
             max_wait_time = 300
             wait_start_time = time.time()
@@ -210,7 +178,7 @@ class GoogleMeetRecorder:
                         By.CSS_SELECTOR, "[aria-label='Leave call']")
                     logger.info("Successfully joined the meeting!")
                     break
-                except Exception:
+                except:
                     logger.info(
                         "Still waiting to be admitted to the meeting...")
                     time.sleep(5)
@@ -260,8 +228,8 @@ class GoogleMeetRecorder:
             monitor_thread.start()
 
         except Exception as e:
-            logger.error(f"Error joining meet: {e}")
-            raise e
+            logger.error(f"Failed to join meet: {str(e)}")
+            raise
 
     def start_recording(self, filename):
         """Start recording a meet"""
@@ -314,22 +282,11 @@ class GoogleMeetRecorder:
                             transcript=None
                         )
                     except Exception as db_error:
-                        logger.error(
-                            f"Failed to add recording to database: {str(db_error)}")
+                        logger.error(f"Failed to add recording to database: {
+                                     str(db_error)}")
 
-            # Reset for next meeting without closing the WebDriver session
-            self.reset_meeting()
-
-    def reset_meeting(self):
-        """Reset the recorder state for a new meeting without closing the WebDriver session"""
-        self.meet_url = None
-        self.current_recording_filename = None
-        # Navigate to a neutral page
-        try:
-            self.driver.get('https://meet.google.com')
-            logger.info("Recorder reset to a neutral state.")
-        except Exception as e:
-            logger.error(f"Failed to reset recorder state: {e}")
+            # Shutdown
+            self.cleanup()
 
     def cleanup(self):
         """Cleanup resources"""
@@ -358,31 +315,30 @@ class GoogleMeetRecorder:
 
 
 if __name__ == "__main__":
-    import argparse
-    import os
-    parser = argparse.ArgumentParser(description="Google Meet Recorder")
-    parser.add_argument("--meet_url", help="The Google Meet URL to record")
-    parser.add_argument("--headless", dest="headless",
-                        action="store_true", help="Run Chrome in headless mode")
-    parser.add_argument("--no-headless", dest="headless",
-                        action="store_false", help="Run Chrome with UI (non-headless)")
-    parser.set_defaults(headless=os.path.exists("/.dockerenv"))
-    args = parser.parse_args()
-
-    if not args.meet_url:
-        import os
-        args.meet_url = os.getenv("MEET_URL")
-    if not args.meet_url:
-        print("Error: No meeting URL provided via command line argument or MEET_URL environment variable.")
-        exit(1)
-
-    recorder = GoogleMeetRecorder(args.headless)
-    recorder.login_to_google()
-    recorder.join_meet(args.meet_url)
-
     try:
-        while True:
-            import time
-            time.sleep(5)
+        # Parse command line arguments
+        parser = argparse.ArgumentParser(description='Google Meet Recorder')
+        parser.add_argument('meet_url', help='URL of the Google Meet to join')
+        parser.add_argument('--no-headless', action='store_true',
+                            help='Run in non-headless mode')
+        args = parser.parse_args()
+
+        # Create and start recorder
+        recorder = GoogleMeetRecorder(
+            args.meet_url, headless=not args.no_headless)
+
+        # Login to Google
+        recorder.login_to_google()
+
+        # Join the meet and start recording
+        recorder.join_meet()
+
     except KeyboardInterrupt:
-        recorder.cleanup()
+        logger.info("Received keyboard interrupt")
+        if 'recorder' in locals():
+            recorder.cleanup()
+    except Exception as e:
+        logger.error(f"Fatal error: {str(e)}")
+        if 'recorder' in locals():
+            recorder.cleanup()
+        sys.exit(1)

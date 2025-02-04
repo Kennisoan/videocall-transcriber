@@ -30,6 +30,7 @@ class AudioSystem:
 
                 # Check for both the source and monitor names as they might appear differently
                 device_names = [
+                    "pulse",
                     "virtual-mic-out",
                     "virtual-mic.monitor",
                     "virtual-mic Monitor"
@@ -38,8 +39,8 @@ class AudioSystem:
                 if any(name.lower() in device_info["name"].lower() for name in device_names):
                     self.recording_device = device_info
                     device_found = True
-                    logger.info(f"Found virtual microphone: {
-                                device_info['name']}")
+                    logger.info(
+                        f"Found virtual microphone: {device_info['name']}")
                     logger.info(f"Device info: {device_info}")
                     break
 
@@ -52,6 +53,7 @@ class AudioSystem:
                 for i in range(self.pa.get_device_count()):
                     device_info = self.pa.get_device_info_by_index(i)
                     device_names = [
+                        "pulse",
                         "virtual-mic-out",
                         "virtual-mic.monitor",
                         "virtual-mic Monitor"
@@ -60,8 +62,8 @@ class AudioSystem:
                     if any(name.lower() in device_info["name"].lower() for name in device_names):
                         self.recording_device = device_info
                         device_found = True
-                        logger.info(f"Found virtual microphone after retry: {
-                                    device_info['name']}")
+                        logger.info(
+                            f"Found virtual microphone after retry: {device_info['name']}")
                         logger.info(f"Device info: {device_info}")
                         break
 
@@ -84,8 +86,8 @@ class AudioSystem:
                 device_info = self.pa.get_device_info_by_index(i)
                 if "BlackHole" in device_info["name"]:
                     self.recording_device = device_info
-                    logger.info(f"Found BlackHole device: {
-                                device_info['name']}")
+                    logger.info(
+                        f"Found BlackHole device: {device_info['name']}")
                     logger.info(f"Device info: {device_info}")
                     return
 

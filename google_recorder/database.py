@@ -27,8 +27,7 @@ class DatabaseManager:
         db_port = os.getenv('POSTGRES_PORT', '5432')
         db_name = os.getenv('POSTGRES_DB', 'mydatabase')
 
-        db_url = f"postgresql://{db_user}:{
-            db_password}@{db_host}:{db_port}/{db_name}"
+        db_url = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
         self.engine = create_engine(db_url)
         Base.metadata.create_all(self.engine)
         Session = sessionmaker(bind=self.engine)
