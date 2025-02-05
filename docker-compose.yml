@@ -43,9 +43,6 @@ services:
   nginx:
     image: nginx:latest
     container_name: vct_nginx
-    ports:
-      - '80:80'
-      - '443:443'
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - /var/run/docker.sock:/tmp/docker.sock:ro
@@ -53,6 +50,7 @@ services:
       - frontend
       - backend
     networks:
+      - frontend
       - vct_network
 
 networks:
