@@ -1,4 +1,5 @@
 FROM python:3.10-slim
+ENV PYTHONUNBUFFERED=1
 
 # Prevent interactive prompts during installation
 ENV DEBIAN_FRONTEND=noninteractive
@@ -52,6 +53,5 @@ ENV XDG_RUNTIME_DIR=/run/user/pulse
 
 EXPOSE 8001
 
-# Retain the entrypoint for initializing PulseAudio and other env settings
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8001"] 

@@ -20,8 +20,8 @@ pulseaudio \
     --daemonize=no \
     --system=no \
     --realtime=no \
-    --log-level=debug \
-    --log-target=stderr \
+    --log-level=warning \
+    --log-target=null \
     --exit-idle-time=-1 \
     -n \
     --file=/home/pulse/.config/pulse/default.pa &
