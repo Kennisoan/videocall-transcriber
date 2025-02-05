@@ -50,8 +50,9 @@ USER pulse
 WORKDIR /home/pulse/app
 
 ENV XDG_RUNTIME_DIR=/run/user/pulse
+ENV PYTHONPATH=/home/pulse/app
 
 EXPOSE 8001
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8001"] 
+CMD ["python", "-m", "uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8001"] 
