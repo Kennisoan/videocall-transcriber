@@ -55,6 +55,7 @@ yarn-error.log*
 .cursorignore
 
 # Project specific
+recordings_data/
 /slack_recorder/recordings/
 /slack_recorder/.session/
 /google_recorder/recordings/
