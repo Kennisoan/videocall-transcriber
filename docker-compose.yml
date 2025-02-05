@@ -5,28 +5,15 @@ services:
     container_name: meet_recorder
     env_file: ./google_recorder/.env
     environment:
-      POSTGRES_HOST: postgres
+      POSTGRES_HOST: db-postgresql-fra1-80115-do-user-18199429-0.d.db.ondigitalocean.com
       CHROME_BIN: /usr/bin/google-chrome-stable
       CHROMEDRIVER_PATH: /usr/bin/chromedriver
+    expose:
+      - '8001'
     networks:
       - vct_network
     volumes:
-      - recordings_data:/home/pulse/app/recordings
-    depends_on:
-      - postgres
-  postgres:
-    image: postgres:15
-    container_name: postgres
-    environment:
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
-      POSTGRES_DB: mydatabase
-    networks:
-      - vct_network
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - '5432:5432'
+      - ./recordings_data:/home/pulse/app/recordings
 
   backend:
     build:
@@ -34,12 +21,10 @@ services:
     container_name: vct_backend
     env_file:
       - .env
-    depends_on:
-      - postgres
     expose:
       - '8000'
     volumes:
-      - recordings_data:/recordings
+      - ./recordings_data:/recordings
     networks:
       - vct_network
     command: uvicorn src.app.main:app --host 0.0.0.0 --port 8000
@@ -57,52 +42,8 @@ services:
     networks:
       - vct_network
 
-  nginx:
-    image: nginx:latest
-    container_name: vct_nginx
-    ports:
-      - '80:80'
-      - '443:443'
-    volumes:
-      - ./nginx/ssl:/etc/letsencrypt
-      - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./nginx/ssl:/etc/nginx/ssl
-      - ./certbot/www:/var/www/certbot
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-    depends_on:
-      - frontend
-      - backend
-    networks:
-      - vct_network
-    profiles:
-      - production
-
-  certbot:
-    image: certbot/certbot
-    container_name: vct_certbot
-    volumes:
-      - ./certbot/www:/var/www/certbot
-      - ./nginx/ssl:/etc/letsencrypt
-      - ./nginx/conf.d:/etc/nginx/conf.d
-    entrypoint: >
-      /bin/sh -c 'trap exit TERM;
-                  while :; do
-                      sleep 12h & wait $${!};
-                      certbot renew;
-                  done;'
-    depends_on:
-      - nginx
-    networks:
-      - vct_network
-    profiles:
-      - production
-
 networks:
   vct_network:
     driver: bridge
     driver_opts:
       com.docker.network.driver.mtu: 1450
-
-volumes:
-  postgres_data:
-  recordings_data:
