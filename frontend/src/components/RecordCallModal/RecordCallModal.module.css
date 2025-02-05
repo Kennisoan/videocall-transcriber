@@ -52,7 +52,54 @@
 }
 
 .success {
-  color: #059669;
+  color: var(--color-text-50);
   margin-top: 8px;
   margin-bottom: 0;
+}
+
+.state_pill {
+  display: flex;
+  align-items: center;
+  margin-top: 12px;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 14px;
+  background-color: rgba(0, 55, 255, 0.05);
+  color: #2a429a;
+  font-weight: 500;
+}
+
+.state_pill.recording {
+  background-color: rgba(255, 0, 0, 0.05);
+  color: #9a2a2a;
+}
+
+.loader {
+  animation: spin 1s linear infinite;
+  margin-right: 2px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.recording_icon {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.25;
+  }
 }

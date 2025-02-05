@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import useSWR from 'swr';
 import RecordingsList from '../RecordingsList';
 import PasswordForm from '../PasswordForm';
 
@@ -17,12 +18,20 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Fetcher function for SWR
+const fetcher = (url) => api.get(url).then((res) => res.data);
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(
     !!localStorage.getItem('authToken')
   );
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+
+  // Fetch recorder state
+  const { data: stateData } = useSWR('/recorder_state', fetcher, {
+    refreshInterval: 2000,
+  });
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -49,7 +58,7 @@ function App() {
     );
   }
 
-  return <RecordingsList />;
+  return <RecordingsList state={stateData?.state} />;
 }
 
 export default App;

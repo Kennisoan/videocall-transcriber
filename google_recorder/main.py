@@ -13,6 +13,7 @@ from datetime import datetime
 from database import DatabaseManager
 from transcription import TranscriptionManager
 from audio import AudioSystem
+from state import set_state, RecorderState
 
 
 # Configure logging
@@ -104,7 +105,7 @@ class GoogleMeetRecorder:
     def login_to_google(self):
         """Login to Google account"""
         try:
-            self.driver.get('https://meet.google.com')
+            self._get_page_with_timeout('https://meet.google.com', timeout=10)
             self.driver.find_element(By.CSS_SELECTOR, '[data-noaft]')
             logger.info("Already logged into Google account")
             return
@@ -120,7 +121,8 @@ class GoogleMeetRecorder:
                     "GOOGLE_EMAIL and GOOGLE_PASSWORD environment variables must be set")
 
             logger.info("Starting automated login sequence...")
-            self.driver.get('https://accounts.google.com')
+            self._get_page_with_timeout(
+                'https://accounts.google.com', timeout=10)
 
             # Enter email
             try:
@@ -182,6 +184,7 @@ class GoogleMeetRecorder:
             )
             join_button.click()
             logger.info("Clicked 'Ask to join' button")
+            set_state(RecorderState.WAITING)
 
             # Try to turn off microphone and camera if they're on
             try:
@@ -216,11 +219,13 @@ class GoogleMeetRecorder:
                     time.sleep(5)
             else:
                 logger.error("Timed out waiting to be admitted to the meeting")
+                set_state(RecorderState.READY)
                 raise Exception(
                     "Failed to join meeting: Admission timeout after 5 minutes")
 
             # Start recording
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            set_state(RecorderState.RECORDING)
             self.start_recording(f"meet_recording_{timestamp}.wav")
 
             # Monitor meet status
@@ -279,6 +284,7 @@ class GoogleMeetRecorder:
         except Exception as e:
             logger.error(f"Recording failed: {str(e)}")
             self.recording = False
+            set_state(RecorderState.READY)
 
     def stop_recording(self):
         """Stop the recording, transcribe it, and add it to database"""
@@ -286,6 +292,7 @@ class GoogleMeetRecorder:
             self.audio_system.stop_recording()
             self.recorder_thread.join()
             self.recording = False
+            set_state(RecorderState.PROCESSING)
 
             # Process recording
             if hasattr(self, 'current_recording_filename'):
@@ -319,17 +326,14 @@ class GoogleMeetRecorder:
 
             # Reset for next meeting without closing the WebDriver session
             self.reset_meeting()
+            set_state(RecorderState.READY)
 
     def reset_meeting(self):
         """Reset the recorder state for a new meeting without closing the WebDriver session"""
         self.meet_url = None
         self.current_recording_filename = None
-        # Navigate to a neutral page
-        try:
-            self.driver.get('https://meet.google.com')
-            logger.info("Recorder reset to a neutral state.")
-        except Exception as e:
-            logger.error(f"Failed to reset recorder state: {e}")
+        self._get_page_with_timeout('https://meet.google.com', timeout=15)
+        logger.info("Recorder reset to a neutral state.")
 
     def cleanup(self):
         """Cleanup resources"""
@@ -355,6 +359,35 @@ class GoogleMeetRecorder:
 
         self.cleanup_complete = True
         logger.info("Cleanup completed")
+
+    def _get_page_with_timeout(self, url: str, timeout: int = 10) -> bool:
+        """
+        Load a page with timeout, gracefully stopping if it takes too long.
+
+        Args:
+            url: The URL to load
+            timeout: Maximum time to wait in seconds
+
+        Returns:
+            bool: True if page loaded completely, False if stopped due to timeout
+        """
+        original_timeout = self.driver.timeouts.page_load
+        try:
+            self.driver.set_page_load_timeout(timeout)
+            try:
+                self.driver.get(url)
+                return True
+            except Exception as e:
+                if "timeout" in str(e).lower():
+                    logger.warning(
+                        f"Page load timed out after {timeout}s, stopping further loading: {url}")
+                    self.driver.execute_script("window.stop();")
+                    return False
+                else:
+                    logger.error(f"Error loading page {url}: {str(e)}")
+                    raise
+        finally:
+            self.driver.set_page_load_timeout(original_timeout)
 
 
 if __name__ == "__main__":

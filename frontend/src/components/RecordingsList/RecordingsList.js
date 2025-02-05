@@ -25,7 +25,7 @@ api.interceptors.request.use((config) => {
 // Custom fetcher using axios
 const fetcher = (url) => api.get(url).then((res) => res.data);
 
-function RecordingsList() {
+function RecordingsList({ state }) {
   const { data: recordings, error } = useSWR(
     '/recordings/',
     fetcher,
@@ -35,7 +35,7 @@ function RecordingsList() {
   );
 
   if (error) return <div>Ошибка загрузки записей</div>;
-  if (!recordings) return <div>Загрузка...</div>;
+  if (!recordings) return <Spinner />;
 
   const sortedRecordings = [...recordings]
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -48,7 +48,7 @@ function RecordingsList() {
 
   return (
     <Container className={styles.wrapper}>
-      <Header trailing={<NewRecordingButton />}>
+      <Header trailing={<NewRecordingButton state={state} />}>
         Записи звонков
       </Header>
       <div className={styles.recordings}>
@@ -66,7 +66,7 @@ function RecordingsList() {
   );
 }
 
-function NewRecordingButton() {
+function NewRecordingButton({ state }) {
   return (
     <RecordCallModal
       as={
@@ -75,7 +75,16 @@ function NewRecordingButton() {
           Записать звонок
         </button>
       }
+      state={state}
     />
+  );
+}
+
+function Spinner() {
+  return (
+    <div className={styles.spinner_wrapper}>
+      <div className={styles.spinner}></div>
+    </div>
   );
 }
 
