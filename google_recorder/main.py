@@ -212,11 +212,12 @@ class GoogleMeetRecorder:
                     leave_button = self.driver.find_element(
                         By.CSS_SELECTOR, "[aria-label='Leave call']")
                     logger.info("Successfully joined the meeting!")
+                    set_state(RecorderState.JOINING)
                     break
                 except Exception:
                     logger.info(
                         "Still waiting to be admitted to the meeting...")
-                    time.sleep(5)
+                    time.sleep(2)
             else:
                 logger.error("Timed out waiting to be admitted to the meeting")
                 set_state(RecorderState.READY)
@@ -225,8 +226,8 @@ class GoogleMeetRecorder:
 
             # Start recording
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            set_state(RecorderState.RECORDING)
             self.start_recording(f"meet_recording_{timestamp}.wav")
+            set_state(RecorderState.RECORDING)
 
             # Monitor meet status
             def check_meet_status():
