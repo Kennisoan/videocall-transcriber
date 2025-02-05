@@ -95,6 +95,7 @@ function RecordingCard({ recording }) {
         <div className={styles.title}>
           {formattedDate}
           <span className={styles.title_separator}>∙</span>
+          <HeaderIcon name={recording.source} />
           <span className={styles.title_secondary}>{source}</span>
         </div>
         <div className={styles.controls}>
@@ -124,33 +125,40 @@ function RecordingCard({ recording }) {
 
       {/* Details */}
       <LabeledText label="Транскрипция">
-        <ExpandableText text={recording.transcript} />
+        <ExpandableText
+          text={
+            recording.transcript || 'Не удалось создать транскрипцию.'
+          }
+        />
       </LabeledText>
       <LabeledText label="Материалы">
-        <a
-          href="#"
-          className={styles.link}
-          onClick={(e) => {
-            e.preventDefault();
-            handleAudioDownload();
-          }}
-        >
-          <Headphones size={14} />
-          {recording.filename}
-        </a>
-        <a
-          href="#"
-          className={styles.link}
-          onClick={(e) => {
-            e.preventDefault();
-            handleTranscriptDownload();
-          }}
-        >
-          <FileText size={14} />
-          {recording.filename.replace('.wav', '.txt')}
-        </a>
+        <div className={styles.DownloadPill_container}>
+          <DownloadPill
+            icon={<Headphones size={14} />}
+            onClick={handleAudioDownload}
+            name="Запись звонка"
+          />
+          <DownloadPill
+            icon={<FileText size={14} />}
+            onClick={handleTranscriptDownload}
+            name="Транскрипция"
+          />
+        </div>
       </LabeledText>
     </Card>
+  );
+}
+
+function HeaderIcon({ name }) {
+  const size = 16;
+
+  return (
+    <img
+      width={size}
+      height={size}
+      className={styles.header_icon}
+      src={`/assets/img/${name}.svg`}
+    />
   );
 }
 
@@ -163,6 +171,17 @@ function HeaderButton({ icon, onClick, size = 18, disabled }) {
     >
       {React.cloneElement(icon, { ...icon.props, size })}
     </button>
+  );
+}
+
+function DownloadPill({ icon, onClick, name }) {
+  return (
+    <a className={styles.DownloadPill_link} onClick={onClick}>
+      <div className={styles.DownloadPill_icon}>
+        {React.cloneElement(icon, { ...icon.props, size: 14 })}
+      </div>
+      <div className={styles.DownloadPill_name}>{name}</div>
+    </a>
   );
 }
 

@@ -17,6 +17,10 @@
 
 .title {
   font-weight: 700;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
 }
 
 .controls {
@@ -28,7 +32,7 @@
   font-weight: 400;
   opacity: 0.25;
   color: var(--color-text-100);
-  padding: 0 6px;
+  padding: 0;
   user-select: none;
 }
 
@@ -60,20 +64,39 @@
   cursor: not-allowed;
 }
 
-.link {
+.DownloadPill_container {
   display: flex;
-  width: fit-content;
-  flex-direction: row;
-  align-items: center;
-  gap: 6px;
-  color: var(--color-link);
-  text-decoration-color: transparent;
   user-select: none;
-  cursor: pointer;
-  transition: text-decoration-color 0.1s ease;
+  flex-direction: row;
+  gap: 6px;
+  margin-top: 2px;
 }
 
-.link:hover {
-  text-decoration: underline;
-  text-decoration-color: rgba(0, 123, 255, 0.3);
+.DownloadPill_link {
+  display: flex;
+  background: rgba(0, 122, 255, 0.12);
+  border-radius: 6px;
+  overflow: hidden;
+  width: fit-content;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.DownloadPill_link:active {
+  scale: 0.95;
+}
+
+.DownloadPill_icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0px;
+  width: 26px;
+  background-color: var(--color-link);
+  color: white;
+}
+
+.DownloadPill_name {
+  color: var(--color-link);
+  padding: 0 8px;
 }
