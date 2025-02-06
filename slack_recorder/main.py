@@ -56,7 +56,6 @@ class SlackHuddleRecorder:
 
         # Create directories
         os.makedirs('recordings', exist_ok=True)
-        os.makedirs('.session', exist_ok=True)
 
         # Initialize Slack clients
         try:
@@ -84,6 +83,16 @@ class SlackHuddleRecorder:
             logger.error(f"Failed to initialize audio system: {str(e)}")
             raise
 
+    # Specialized function for clicking using JavaScript
+    def _js_click(self, element):
+        try:
+            self.driver.execute_script(
+                "arguments[0].click();", element)
+            logger.info("Clicked button using JS. HTML: %s",
+                        element.get_attribute('outerHTML'))
+        except Exception as e:
+            logger.error("JS click failed: %s", e)
+
     def _initialize_browser(self):
         """Initialize or reinitialize the Chrome browser with appropriate options"""
         options = webdriver.ChromeOptions()
@@ -96,28 +105,30 @@ class SlackHuddleRecorder:
         options.add_argument('--disable-software-rasterizer')
         options.add_argument('--autoplay-policy=no-user-gesture-required')
 
-        # Chrome session persistence
-        user_data_dir = os.path.abspath('.session/chrome_data')
-        os.makedirs(user_data_dir, exist_ok=True)
-        options.add_argument(f'--user-data-dir={user_data_dir}')
-
         if self.headless:
             options.add_argument('--headless=new')
 
-        # Chrome binary and ChromeDriver
-        chrome_binary = os.environ.get('CHROME_BIN')
-        if chrome_binary:
-            options.binary_location = chrome_binary
-
-        chromedriver_path = os.environ.get('CHROMEDRIVER_PATH')
-        if chromedriver_path:
-            self.driver = webdriver.Chrome(
-                executable_path=chromedriver_path, options=options)
+        # Chrome binary and ChromeDriver with platform-specific defaults
+        if sys.platform == "darwin":
+            chrome_binary = os.environ.get(
+                'CHROME_BIN', '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')
+            chromedriver_path = os.environ.get(
+                'CHROMEDRIVER_PATH', '/opt/homebrew/bin/chromedriver')
         else:
-            self.driver = webdriver.Chrome(options=options)
+            chrome_binary = os.environ.get('CHROME_BIN', '/usr/bin/chromium')
+            chromedriver_path = os.environ.get(
+                'CHROMEDRIVER_PATH', '/usr/bin/chromedriver')
 
-        logger.info(f"Browser initialized in {
-                    'headless' if self.headless else 'normal'} mode")
+        options.binary_location = chrome_binary
+        options.add_argument('--browser-binary=' + chrome_binary)
+
+        from selenium.webdriver.chrome.service import Service
+        service = Service(executable_path=chromedriver_path)
+        service.creation_flags = 0  # Ensure no special flags are set
+        self.driver = webdriver.Chrome(service=service, options=options)
+
+        logger.info(
+            f"Browser initialized in {'headless' if self.headless else 'normal'} mode")
 
         # Check if we need to login
         self.driver.get("https://app.slack.com")
@@ -129,15 +140,91 @@ class SlackHuddleRecorder:
             )
             logger.info("Using existing session")
         except:
-            if self.headless:
-                logger.error(
-                    "No valid session found and running in headless mode. Please run with --no-headless first to set up the session.")
+            # Get environment variables for login
+            workspace_url = os.environ.get("SLACK_WORKSPACE_URL")
+            email = os.environ.get("SLACK_EMAIL")
+            password = os.environ.get("SLACK_PASSWORD")
+
+            if not all([workspace_url, email, password]):
                 raise Exception(
-                    "No valid Slack session found in headless mode")
-            logger.info(
-                "No valid session found. Please log in manually in the browser window and press Enter when done...")
-            input()
-            logger.info("Continuing with the logged in session...")
+                    "Missing required environment variables: SLACK_WORKSPACE_URL, SLACK_EMAIL, and SLACK_PASSWORD must be set")
+
+            try:
+                logger.info("Starting Slack login process...")
+                self.driver.get("https://slack.com/workspace-signin")
+
+                # Enter workspace URL
+                logger.info("Entering workspace URL...")
+                workspace_input = WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located(
+                        (By.CSS_SELECTOR, "[data-qa='signin_domain_input']"))
+                )
+                # Extract everything before .slack.com
+                workspace_name = workspace_url.split('.')[0]
+                workspace_input.send_keys(workspace_name)
+
+                # Click continue button
+                logger.info("Clicking continue button...")
+                continue_button = WebDriverWait(self.driver, 10).until(
+                    EC.element_to_be_clickable(
+                        (By.CSS_SELECTOR, "[data-qa='submit_team_domain_button']"))
+                )
+                continue_button.click()
+
+                # Click "sign in with password" link
+                logger.info("Clicking 'sign in with password' link...")
+                password_link = WebDriverWait(self.driver, 10).until(
+                    EC.element_to_be_clickable(
+                        (By.CSS_SELECTOR, "[data-qa='sign_in_password_link']"))
+                )
+                password_link.click()
+
+                # Enter email and password
+                logger.info("Entering email and password...")
+                email_input = WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located(
+                        (By.CSS_SELECTOR, "[data-qa='login_email']"))
+                )
+                password_input = self.driver.find_element(
+                    By.CSS_SELECTOR, "[data-qa='login_password']")
+
+                email_input.send_keys(email)
+                password_input.send_keys(password)
+
+                # Click sign in button
+                logger.info("Clicking sign in button...")
+                signin_button = WebDriverWait(self.driver, 20).until(
+                    EC.element_to_be_clickable(
+                        (By.CSS_SELECTOR, "[data-qa='signin_button']"))
+                )
+                signin_button.click()
+
+                # Wait for successful login
+                logger.info("Waiting for successful login...")
+                browser_link = WebDriverWait(self.driver, 20).until(
+                    EC.element_to_be_clickable(
+                        (By.CSS_SELECTOR,
+                         "[data-qa='ssb_redirect_open_in_browser']")
+                    )
+                )
+                browser_link.click()
+                logger.info("Checking login status...")
+                time.sleep(10)
+                self.driver.get("https://app.slack.com")
+                try:
+                    WebDriverWait(self.driver, 10).until(
+                        EC.presence_of_element_located(
+                            (By.CSS_SELECTOR, ".ss-c-workspaces")
+                        )
+                    )
+                    logger.info("Logged in successfully!")
+                except Exception as e:
+                    logger.error(f"Failed to log in to Slack: {str(e)}")
+                    raise
+
+            except Exception as e:
+                logger.error(f"Failed to log in to Slack: {str(e)}")
+                raise
 
     def join_huddle(self, huddle_link):
         """Join a Slack huddle using its link"""
@@ -151,32 +238,25 @@ class SlackHuddleRecorder:
             self.current_huddle_link = huddle_link
             logger.info(f"Joining huddle: {huddle_link}")
 
-            # Try to use existing window first
-            try:
-                self.driver.get(huddle_link)
-            except Exception as e:
-                logger.error(f"Failed to use existing window: {str(e)}")
-                # If the window is closed, reinitialize browser
-                self._initialize_browser()
-                self.driver.get(huddle_link)
+            self.driver.get(huddle_link)
 
-            # Wait for and click the "use Slack in your browser" link
-            browser_link = WebDriverWait(self.driver, 20).until(
+            # Wait for and manually follow the "use Slack in your browser" link
+            browser_link_element = WebDriverWait(self.driver, 20).until(
                 EC.element_to_be_clickable(
-                    (By.CSS_SELECTOR,
-                     "[data-qa='ssb_redirect_open_in_browser']")
-                )
+                    (By.CSS_SELECTOR, "[data-qa='ssb_redirect_open_in_browser']"))
             )
-            browser_link.click()
+            browser_link = browser_link_element.get_attribute('href')
+            logger.info("Following join link: %s", browser_link)
+            self.driver.get(browser_link)
 
-            # Wait for the join button and press Enter to join
+            # Wait for the join button
+            logger.info("Waiting for join button...")
             join_btn = WebDriverWait(self.driver, 20).until(
-                EC.presence_of_element_located(
-                    (By.CSS_SELECTOR,
-                     "[data-qa='huddle_from_link_speed_bump_modal_old_go']")
-                )
+                EC.element_to_be_clickable(
+                    (By.CSS_SELECTOR, "[data-qa='huddle_from_link_speed_bump_modal_old_go']"))
             )
-            join_btn.click()
+
+            self._js_click(join_btn)
 
             # Start recording
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -212,6 +292,12 @@ class SlackHuddleRecorder:
 
         except Exception as e:
             logger.error(f"Failed to join huddle: {str(e)}")
+            try:
+                page_source = self.driver.page_source
+                logger.error("Current page HTML at time of failure:")
+                logger.error(page_source)
+            except Exception as page_error:
+                logger.error(f"Could not get page source: {str(page_error)}")
             self.is_joining_huddle = False
             self.current_huddle_link = None
 
@@ -241,9 +327,11 @@ class SlackHuddleRecorder:
 
             # Leave the huddle
             try:
-                leave_button = self.driver.find_element(
-                    By.CSS_SELECTOR, "[data-qa='huddle_mini_player_leave_button']")
-                leave_button.click()
+                leave_button = WebDriverWait(self.driver, 20).until(
+                    EC.element_to_be_clickable(
+                        (By.CSS_SELECTOR, "[data-qa='huddle_mini_player_leave_button']"))
+                )
+                self._js_click(leave_button)
             except Exception as e:
                 logger.error(f"Failed to click leave huddle button: {str(e)}")
 
@@ -277,8 +365,8 @@ class SlackHuddleRecorder:
                             transcript=None
                         )
                     except Exception as db_error:
-                        logger.error(f"Failed to add recording to database: {
-                                     str(db_error)}")
+                        logger.error(
+                            f"Failed to add recording to database: {str(db_error)}")
 
     def process_event(self, client, req):
         """Process incoming Slack events"""
@@ -377,10 +465,17 @@ if __name__ == "__main__":
         # Get environment variables and validate them
         SLACK_APP_TOKEN = os.environ.get("SLACK_APP_TOKEN")
         SLACK_USER_TOKEN = os.environ.get("SLACK_USER_TOKEN")
+        SLACK_WORKSPACE_URL = os.environ.get("SLACK_WORKSPACE_URL")
+        SLACK_EMAIL = os.environ.get("SLACK_EMAIL")
+        SLACK_PASSWORD = os.environ.get("SLACK_PASSWORD")
 
-        required_vars = {"SLACK_APP_TOKEN": SLACK_APP_TOKEN,
-                         "SLACK_USER_TOKEN": SLACK_USER_TOKEN
-                         }
+        required_vars = {
+            "SLACK_APP_TOKEN": SLACK_APP_TOKEN,
+            "SLACK_USER_TOKEN": SLACK_USER_TOKEN,
+            "SLACK_WORKSPACE_URL": SLACK_WORKSPACE_URL,
+            "SLACK_EMAIL": SLACK_EMAIL,
+            "SLACK_PASSWORD": SLACK_PASSWORD
+        }
 
         missing_vars = [k for k, v in required_vars.items() if not v]
         if missing_vars:

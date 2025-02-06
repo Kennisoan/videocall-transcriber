@@ -17,7 +17,10 @@ class TranscriptionManager:
         Format the transcript into paragraphs based on timing gaps and sentence endings
         """
         segments = response_data.get('segments', [])
+        logger.info(f"Received {len(segments)} segments from Whisper API")
+
         if not segments:
+            logger.warning("No segments found in response data")
             return response_data.get('text', '')
 
         MIN_PAUSE_FOR_BREAK = 0.5
@@ -43,13 +46,19 @@ class TranscriptionManager:
 
                 if time_gap >= MIN_PAUSE_FOR_BREAK and last_char in '.!?':
                     formatted_text.append(' '.join(current_paragraph))
+                    logger.debug(
+                        f"Created paragraph break after: {' '.join(current_paragraph)}")
                     current_paragraph = []
 
         # Add the last paragraph if there's anything left
         if current_paragraph:
             formatted_text.append(' '.join(current_paragraph))
 
-        return '\n\n'.join(formatted_text)
+        final_text = '\n\n'.join(formatted_text)
+        logger.info(
+            f"Formatted transcript into {len(formatted_text)} paragraphs")
+        logger.debug(f"Final formatted text:\n{final_text}")
+        return final_text
 
     def transcribe_audio(self, audio_path):
         """
@@ -65,6 +74,7 @@ class TranscriptionManager:
                     timestamp_granularities=["segment"]
                 )
 
+                logger.debug(f"Raw API response: {response.model_dump()}")
                 formatted_text = self.format_transcript(response.model_dump())
                 logger.info("Transcription completed successfully")
                 return formatted_text

@@ -19,6 +19,20 @@ class AudioSystem:
         self.recording = False
         self._setup_recording_device()
 
+        # Ensure recordings directory exists with proper permissions
+        self.recordings_dir = "/home/pulse/app/recordings"
+        if not os.path.exists(self.recordings_dir):
+            try:
+                os.makedirs(self.recordings_dir, exist_ok=True)
+                # Ensure directory has proper permissions
+                os.chmod(self.recordings_dir, 0o777)
+                logger.info(
+                    f"Created recordings directory: {self.recordings_dir}")
+            except Exception as e:
+                logger.error(
+                    f"Failed to create recordings directory: {str(e)}")
+                raise
+
     def _setup_recording_device(self):
         """Setup the appropriate recording device based on the platform"""
         if self.system == "Linux":
@@ -30,6 +44,7 @@ class AudioSystem:
 
                 # Check for both the source and monitor names as they might appear differently
                 device_names = [
+                    "pulse",
                     "virtual-mic-out",
                     "virtual-mic.monitor",
                     "virtual-mic Monitor"
@@ -38,8 +53,8 @@ class AudioSystem:
                 if any(name.lower() in device_info["name"].lower() for name in device_names):
                     self.recording_device = device_info
                     device_found = True
-                    logger.info(f"Found virtual microphone: {
-                                device_info['name']}")
+                    logger.info(
+                        f"Found virtual microphone: {device_info['name']}")
                     logger.info(f"Device info: {device_info}")
                     break
 
@@ -52,6 +67,7 @@ class AudioSystem:
                 for i in range(self.pa.get_device_count()):
                     device_info = self.pa.get_device_info_by_index(i)
                     device_names = [
+                        "pulse",
                         "virtual-mic-out",
                         "virtual-mic.monitor",
                         "virtual-mic Monitor"
@@ -60,8 +76,8 @@ class AudioSystem:
                     if any(name.lower() in device_info["name"].lower() for name in device_names):
                         self.recording_device = device_info
                         device_found = True
-                        logger.info(f"Found virtual microphone after retry: {
-                                    device_info['name']}")
+                        logger.info(
+                            f"Found virtual microphone after retry: {device_info['name']}")
                         logger.info(f"Device info: {device_info}")
                         break
 
@@ -84,8 +100,8 @@ class AudioSystem:
                 device_info = self.pa.get_device_info_by_index(i)
                 if "BlackHole" in device_info["name"]:
                     self.recording_device = device_info
-                    logger.info(f"Found BlackHole device: {
-                                device_info['name']}")
+                    logger.info(
+                        f"Found BlackHole device: {device_info['name']}")
                     logger.info(f"Device info: {device_info}")
                     return
 
@@ -102,6 +118,11 @@ class AudioSystem:
         """Start recording audio"""
         if not self.recording_device:
             raise Exception("No recording device configured")
+
+        # Ensure filename is using the correct directory path
+        full_path = os.path.join(
+            self.recordings_dir, os.path.basename(filename))
+        logger.info(f"Recording to file: {full_path}")
 
         self.recording = True
         CHUNK = 1024
@@ -125,7 +146,7 @@ class AudioSystem:
                 frames_per_buffer=CHUNK
             )
 
-            with sf.SoundFile(filename, mode='w', samplerate=RATE,
+            with sf.SoundFile(full_path, mode='w', samplerate=RATE,
                               channels=CHANNELS, format='WAV') as audio_file:
                 while self.recording:  # Continue while recording flag is True
                     try:
