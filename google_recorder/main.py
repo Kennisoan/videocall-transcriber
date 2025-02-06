@@ -174,7 +174,8 @@ class GoogleMeetRecorder:
         self.meet_url = meet_url
         try:
             logger.info(f"Joining meet: {meet_url}")
-            self.driver.get(meet_url)
+            self._get_page_with_timeout(meet_url, timeout=15)
+            logger.info("Loaded meet lobby page")
 
             # Wait for and click the join button
             join_button = WebDriverWait(self.driver, 20).until(
