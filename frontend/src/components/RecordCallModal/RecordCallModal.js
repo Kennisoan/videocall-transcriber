@@ -140,6 +140,7 @@ function StatePill({ state }) {
     recording: 'Идёт запись звонка',
     processing: 'Обработка записи',
     unavailable: 'Запись звонков временно недоступна',
+    initializing: 'Ещё пару секунд...',
   };
 
   const stateType = {
@@ -148,6 +149,7 @@ function StatePill({ state }) {
     recording: 'recording',
     processing: 'loading',
     unavailable: 'info',
+    initializing: 'loading',
   };
 
   return (
