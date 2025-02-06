@@ -40,7 +40,11 @@ RUN pip3 install --no-cache-dir -r /tmp/requirements.txt
 
 # Copy the complete application code into the image
 COPY . /home/pulse/app
-RUN chown -R pulse:pulse /home/pulse/app
+
+# Create recordings directory with proper permissions
+RUN mkdir -p /home/pulse/app/recordings && \
+    chmod 777 /home/pulse/app/recordings && \
+    chown -R pulse:pulse /home/pulse/app
 
 # Set up PulseAudio configuration and entrypoint script
 RUN cp /home/pulse/app/pulse/default.pa /home/pulse/.config/pulse/default.pa && \
