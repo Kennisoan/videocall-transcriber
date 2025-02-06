@@ -327,6 +327,7 @@ class GoogleMeetRecorder:
                             f"Failed to add recording to database: {str(db_error)}")
 
             # Reset for next meeting without closing the WebDriver session
+            set_state(RecorderState.INITIALIZING)
             self.reset_meeting()
             set_state(RecorderState.READY)
 
