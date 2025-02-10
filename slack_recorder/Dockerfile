@@ -4,7 +4,7 @@ ENV PYTHONUNBUFFERED=1
 # Prevent interactive prompts during installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install dependencies including Chromium and build tools
+# Install dependencies including Chromium, build tools, and ffmpeg for pydub
 RUN apt-get update && apt-get install -y \
     pulseaudio \
     libsndfile1 \
@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y \
     gcc \
     python3-dev \
     libasound2-dev \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # Set environment variables for Selenium
