@@ -36,6 +36,15 @@ class DatabaseManager:
     def add_recording(self, filename, source, transcript=None):
         """Add a new recording to the database"""
         try:
+            # Log the transcript before storing
+            if transcript:
+                logger.info(
+                    "About to store transcript in database. First 1000 chars:")
+                # Use repr to see escape sequences
+                logger.info(repr(transcript[:1000]))
+                logger.info("Number of newlines in transcript: %d",
+                            transcript.count('\n'))
+
             recording = Recording(
                 filename=filename,
                 source=source,
@@ -43,6 +52,16 @@ class DatabaseManager:
             )
             self.session.add(recording)
             self.session.commit()
+
+            # Verify what was actually stored
+            stored_recording = self.session.query(
+                Recording).filter_by(filename=filename).first()
+            if stored_recording and stored_recording.transcript:
+                logger.info("Stored transcript in database. First 100 chars:")
+                logger.info(repr(stored_recording.transcript[:100]))
+                logger.info("Number of newlines in stored transcript: %d",
+                            stored_recording.transcript.count('\n'))
+
             logger.info(f"Added recording {filename} to database")
             return recording
         except Exception as e:
