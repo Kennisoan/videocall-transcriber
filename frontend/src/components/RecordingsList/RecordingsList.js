@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import useSWR from 'swr';
 import { parseISO, formatISO } from 'date-fns';
 import RecordingCard from '../RecordingCard';
@@ -6,36 +6,15 @@ import Container from '../Container';
 import Header from '../Header';
 import RecordCallModal from '../RecordCallModal/RecordCallModal';
 import { Plus } from 'react-feather';
-import axios from 'axios';
+import { fetcher } from '../../api/client';
 import styles from './RecordingsList.module.css';
 
-// Create axios instance with auth token
-const api = axios.create({
-  baseURL: 'http://localhost:8000',
-});
+function RecordingsList() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { data: recordings, error } = useSWR('/recordings', fetcher);
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('authToken');
-  if (token) {
-    config.headers['x-token'] = token;
-  }
-  return config;
-});
-
-// Custom fetcher using axios
-const fetcher = (url) => api.get(url).then((res) => res.data);
-
-function RecordingsList({ state }) {
-  const { data: recordings, error } = useSWR(
-    '/recordings/',
-    fetcher,
-    {
-      refreshInterval: 5000,
-    }
-  );
-
-  if (error) return <div>Ошибка загрузки записей</div>;
-  if (!recordings) return <Spinner />;
+  if (error) return <div>Failed to load recordings</div>;
+  if (!recordings) return <div>Loading...</div>;
 
   const sortedRecordings = [...recordings]
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -48,7 +27,17 @@ function RecordingsList({ state }) {
 
   return (
     <Container className={styles.wrapper}>
-      <Header trailing={<NewRecordingButton state={state} />}>
+      <Header
+        trailing={
+          <button
+            className={styles.newRecordingButton}
+            onClick={() => setIsModalOpen(true)}
+          >
+            <Plus size={14} strokeWidth={2.3} />
+            Записать звонок
+          </button>
+        }
+      >
         Записи звонков
       </Header>
       <div className={styles.recordings}>
@@ -62,29 +51,11 @@ function RecordingsList({ state }) {
           ))
         )}
       </div>
+      <RecordCallModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </Container>
-  );
-}
-
-function NewRecordingButton({ state }) {
-  return (
-    <RecordCallModal
-      as={
-        <button className={styles.newRecordingButton}>
-          <Plus size={14} strokeWidth={2.3} />
-          Записать звонок
-        </button>
-      }
-      state={state}
-    />
-  );
-}
-
-function Spinner() {
-  return (
-    <div className={styles.spinner_wrapper}>
-      <div className={styles.spinner}></div>
-    </div>
   );
 }
 

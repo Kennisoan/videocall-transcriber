@@ -5,7 +5,7 @@ import ExpandableText from '../ExpandableText';
 import Dropdown from '../Dropdown';
 import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import axios from 'axios';
+import api from '../../api/client';
 import {
   MoreHorizontal,
   Headphones,
@@ -14,19 +14,6 @@ import {
 } from 'react-feather';
 
 import styles from './RecordingCard.module.css';
-
-// Create axios instance with auth token
-const api = axios.create({
-  baseURL: 'http://localhost:8000',
-});
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('authToken');
-  if (token) {
-    config.headers['x-token'] = token;
-  }
-  return config;
-});
 
 function formatRecordingName(created_at) {
   const date = parseISO(created_at);
@@ -48,22 +35,8 @@ async function handleDelete(recording) {
 
 async function downloadFile(url, filename) {
   try {
-    const response = await api.get(url, {
-      responseType: 'blob',
-    });
-
-    // Create a blob from the response data
-    const blob = new Blob([response.data]);
-
-    // Create a link element and trigger download
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(downloadUrl);
+    const token = localStorage.getItem('authToken');
+    window.open(`${api.defaults.baseURL}${url}`);
   } catch (error) {
     console.error('Error downloading file:', error);
   }

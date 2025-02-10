@@ -1,36 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../Modal';
 import TextInput from '../TextInput';
-import axios from 'axios';
+import api from '../../api/client';
 import styles from './RecordCallModal.module.css';
 
 import { Loader, Info, PhoneIncoming } from 'react-feather';
 
-// Create axios instance with auth token
-const api = axios.create({
-  baseURL: 'http://localhost:8000',
-});
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('authToken');
-  if (token) {
-    config.headers['x-token'] = token;
-  }
-  return config;
-});
-
-function RecordCallModal({ as, state }) {
+function RecordCallModal({ isOpen, onClose }) {
   const [meetLink, setMeetLink] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (state === 'ready') {
+    if (isOpen === 'ready') {
       setMeetLink('');
       setIsSubmitted(false);
       setError('');
     }
-  }, [state]);
+  }, [isOpen]);
 
   const validateGoogleMeetLink = (link) => {
     const meetRegex = /^https:\/\/meet\.google\.com\/[a-z0-9-]+$/i;
@@ -63,7 +50,7 @@ function RecordCallModal({ as, state }) {
 
   return (
     <Modal
-      root={as}
+      isOpen={isOpen}
       onClose={() => {
         setIsSubmitted(false);
         setError('');
@@ -72,7 +59,7 @@ function RecordCallModal({ as, state }) {
       title="Записать звонок"
     >
       <h3 className={styles.title}>Звонок в Google Meet</h3>
-      {state === 'ready' && (
+      {isOpen === 'ready' && (
         <GoogleMeetForm
           meetLink={meetLink}
           setMeetLink={setMeetLink}
@@ -81,7 +68,7 @@ function RecordCallModal({ as, state }) {
           handleSubmit={handleSubmit}
         />
       )}
-      {state !== 'ready' && <StatePill state={state} />}
+      {isOpen !== 'ready' && <StatePill isOpen={isOpen} />}
       <hr className={styles.divider} />
 
       <h3 className={styles.title}>Huddle в Slack</h3>
@@ -133,7 +120,7 @@ function GoogleMeetForm({
   );
 }
 
-function StatePill({ state }) {
+function StatePill({ isOpen }) {
   const verboseState = {
     waiting: 'Бот ожидает в лобби',
     joining: 'Присоединение к звонку',
@@ -154,16 +141,16 @@ function StatePill({ state }) {
 
   return (
     <div
-      className={`${styles.state_pill} ${styles[stateType[state]]}`}
+      className={`${styles.state_pill} ${styles[stateType[isOpen]]}`}
     >
-      {stateType[state] === 'loading' ? (
+      {stateType[isOpen] === 'loading' ? (
         <Loader size={16} className={styles.loader} />
-      ) : stateType[state] === 'recording' ? (
+      ) : stateType[isOpen] === 'recording' ? (
         <PhoneIncoming className={styles.recording_icon} size={16} />
       ) : (
         <Info size={16} />
       )}
-      {verboseState[state]}
+      {verboseState[isOpen]}
     </div>
   );
 }
