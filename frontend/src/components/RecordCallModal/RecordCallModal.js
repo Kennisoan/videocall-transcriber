@@ -6,7 +6,7 @@ import styles from './RecordCallModal.module.css';
 
 import { Loader, Info, PhoneIncoming } from 'react-feather';
 
-function RecordCallModal({ isOpen, onClose }) {
+function RecordCallModal({ isOpen, onClose, root }) {
   const [meetLink, setMeetLink] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
@@ -57,6 +57,7 @@ function RecordCallModal({ isOpen, onClose }) {
         setMeetLink('');
       }}
       title="Записать звонок"
+      root={root}
     >
       <h3 className={styles.title}>Звонок в Google Meet</h3>
       {isOpen === 'ready' && (

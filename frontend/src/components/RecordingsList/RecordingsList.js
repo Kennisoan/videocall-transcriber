@@ -54,6 +54,15 @@ function RecordingsList() {
       <RecordCallModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        root={
+          <button
+            className={styles.newRecordingButton}
+            onClick={() => setIsModalOpen(true)}
+          >
+            <Plus size={14} strokeWidth={2.3} />
+            Записать звонок
+          </button>
+        }
       />
     </Container>
   );
