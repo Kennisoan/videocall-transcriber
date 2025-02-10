@@ -10,8 +10,9 @@ import { fetcher } from '../../api/client';
 import styles from './RecordingsList.module.css';
 
 function RecordingsList({ state }) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const { data: recordings, error } = useSWR('/recordings', fetcher);
+  const { data: recordings, error } = useSWR('/recordings', fetcher, {
+    refreshInterval: 10000,
+  });
 
   if (error) return <div>Failed to load recordings</div>;
   if (!recordings)
@@ -37,10 +38,7 @@ function RecordingsList({ state }) {
           <RecordCallModal
             state={state}
             root={
-              <button
-                className={styles.newRecordingButton}
-                onClick={() => setIsModalOpen(true)}
-              >
+              <button className={styles.newRecordingButton}>
                 <Plus size={14} strokeWidth={2.3} />
                 Записать звонок
               </button>
