@@ -29,13 +29,19 @@ function RecordingsList() {
     <Container className={styles.wrapper}>
       <Header
         trailing={
-          <button
-            className={styles.newRecordingButton}
-            onClick={() => setIsModalOpen(true)}
-          >
-            <Plus size={14} strokeWidth={2.3} />
-            Записать звонок
-          </button>
+          <RecordCallModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            root={
+              <button
+                className={styles.newRecordingButton}
+                onClick={() => setIsModalOpen(true)}
+              >
+                <Plus size={14} strokeWidth={2.3} />
+                Записать звонок
+              </button>
+            }
+          />
         }
       >
         Записи звонков
@@ -51,19 +57,6 @@ function RecordingsList() {
           ))
         )}
       </div>
-      <RecordCallModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        root={
-          <button
-            className={styles.newRecordingButton}
-            onClick={() => setIsModalOpen(true)}
-          >
-            <Plus size={14} strokeWidth={2.3} />
-            Записать звонок
-          </button>
-        }
-      />
     </Container>
   );
 }
