@@ -51,7 +51,7 @@ def root():
     return {"message": "Hello from the Video Call Transcriber API"}
 
 
-@app.get("/recordings/", response_model=list[schemas.Recording])
+@app.get("/recordings", response_model=list[schemas.Recording])
 def list_recordings(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(verify_token)):
     recordings = crud.get_recordings(db, skip=skip, limit=limit)
     return [schemas.Recording.from_orm(recording) for recording in recordings]
