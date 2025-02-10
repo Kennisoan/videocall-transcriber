@@ -5,7 +5,7 @@ import RecordingCard from '../RecordingCard';
 import Container from '../Container';
 import Header from '../Header';
 import RecordCallModal from '../RecordCallModal/RecordCallModal';
-import { Plus } from 'react-feather';
+import { Plus, Loader } from 'react-feather';
 import { fetcher } from '../../api/client';
 import styles from './RecordingsList.module.css';
 
@@ -14,7 +14,12 @@ function RecordingsList({ state }) {
   const { data: recordings, error } = useSWR('/recordings', fetcher);
 
   if (error) return <div>Failed to load recordings</div>;
-  if (!recordings) return <div>Loading...</div>;
+  if (!recordings)
+    return (
+      <div className={styles.loader_wrapper}>
+        <Loader size={16} className={styles.loader} />
+      </div>
+    );
 
   const sortedRecordings = [...recordings]
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
