@@ -126,7 +126,7 @@ class TranscriptionManager:
                         chunk_response.model_dump())
                     transcripts.append(transcript_chunk)
 
-                full_transcript = "\n\n".join(transcripts)
+                full_transcript = " ".join(transcripts)
                 logger.info(
                     "Transcription of all chunks completed successfully")
                 return full_transcript
