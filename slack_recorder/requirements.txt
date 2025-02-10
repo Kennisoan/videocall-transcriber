@@ -16,3 +16,4 @@ scipy
 uvicorn==0.22.0
 fastapi==0.95.2
 pydantic==1.10.7
+pydub
