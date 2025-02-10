@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { fetcher } from '../../api/client';
+import useSWR from 'swr';
 import api from '../../api/client';
 import styles from './App.module.css';
 import RecordingsList from '../RecordingsList';
@@ -10,6 +12,10 @@ function App() {
   );
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+
+  const { data: stateData } = useSWR('/recorder_state', fetcher, {
+    refreshInterval: 2000,
+  });
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -35,11 +41,7 @@ function App() {
     );
   }
 
-  return (
-    <div className={styles.app}>
-      <RecordingsList />
-    </div>
-  );
+  return <RecordingsList state={stateData?.state} />;
 }
 
 export default App;

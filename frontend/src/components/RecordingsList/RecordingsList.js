@@ -9,7 +9,7 @@ import { Plus } from 'react-feather';
 import { fetcher } from '../../api/client';
 import styles from './RecordingsList.module.css';
 
-function RecordingsList() {
+function RecordingsList({ state }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { data: recordings, error } = useSWR('/recordings', fetcher);
 
@@ -30,8 +30,7 @@ function RecordingsList() {
       <Header
         trailing={
           <RecordCallModal
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
+            state={state}
             root={
               <button
                 className={styles.newRecordingButton}

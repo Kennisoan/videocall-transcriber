@@ -6,18 +6,18 @@ import styles from './RecordCallModal.module.css';
 
 import { Loader, Info, PhoneIncoming } from 'react-feather';
 
-function RecordCallModal({ isOpen, onClose, root }) {
+function RecordCallModal({ state, root }) {
   const [meetLink, setMeetLink] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (isOpen === 'ready') {
+    if (state === 'ready') {
       setMeetLink('');
       setIsSubmitted(false);
       setError('');
     }
-  }, [isOpen]);
+  }, [state]);
 
   const validateGoogleMeetLink = (link) => {
     const meetRegex = /^https:\/\/meet\.google\.com\/[a-z0-9-]+$/i;
@@ -50,7 +50,7 @@ function RecordCallModal({ isOpen, onClose, root }) {
 
   return (
     <Modal
-      isOpen={isOpen}
+      state={state}
       onClose={() => {
         setIsSubmitted(false);
         setError('');
@@ -60,7 +60,7 @@ function RecordCallModal({ isOpen, onClose, root }) {
       root={root}
     >
       <h3 className={styles.title}>Звонок в Google Meet</h3>
-      {isOpen === 'ready' && (
+      {state === 'ready' && (
         <GoogleMeetForm
           meetLink={meetLink}
           setMeetLink={setMeetLink}
@@ -69,7 +69,7 @@ function RecordCallModal({ isOpen, onClose, root }) {
           handleSubmit={handleSubmit}
         />
       )}
-      {isOpen !== 'ready' && <StatePill isOpen={isOpen} />}
+      {state !== 'ready' && <StatePill state={state} />}
       <hr className={styles.divider} />
 
       <h3 className={styles.title}>Huddle в Slack</h3>
@@ -121,7 +121,7 @@ function GoogleMeetForm({
   );
 }
 
-function StatePill({ isOpen }) {
+function StatePill({ state }) {
   const verboseState = {
     waiting: 'Бот ожидает в лобби',
     joining: 'Присоединение к звонку',
@@ -142,16 +142,16 @@ function StatePill({ isOpen }) {
 
   return (
     <div
-      className={`${styles.state_pill} ${styles[stateType[isOpen]]}`}
+      className={`${styles.state_pill} ${styles[stateType[state]]}`}
     >
-      {stateType[isOpen] === 'loading' ? (
+      {stateType[state] === 'loading' ? (
         <Loader size={16} className={styles.loader} />
-      ) : stateType[isOpen] === 'recording' ? (
+      ) : stateType[state] === 'recording' ? (
         <PhoneIncoming className={styles.recording_icon} size={16} />
       ) : (
         <Info size={16} />
       )}
-      {verboseState[isOpen]}
+      {verboseState[state]}
     </div>
   );
 }
