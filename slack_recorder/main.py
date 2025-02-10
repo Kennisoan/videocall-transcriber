@@ -199,14 +199,52 @@ class SlackHuddleRecorder:
                 )
                 signin_button.click()
 
-                # Wait for successful login
-                logger.info("Waiting for successful login...")
-                browser_link = WebDriverWait(self.driver, 20).until(
-                    EC.element_to_be_clickable(
-                        (By.CSS_SELECTOR,
-                         "[data-qa='ssb_redirect_open_in_browser']")
+                # Wait for successful login or 2FA
+                logger.info("Checking for 2FA or direct login...")
+                try:
+                    # First try to find the browser link
+                    browser_link = WebDriverWait(self.driver, 10).until(
+                        EC.element_to_be_clickable(
+                            (By.CSS_SELECTOR,
+                             "[data-qa='ssb_redirect_open_in_browser']")
+                        )
                     )
-                )
+                except:
+                    # If browser link not found, check for 2FA input
+                    try:
+                        two_factor_container = WebDriverWait(self.driver, 5).until(
+                            EC.presence_of_element_located(
+                                (By.CSS_SELECTOR,
+                                 "[data-qa='confirmation_code_input']")
+                            )
+                        )
+
+                        # Found 2FA input, get code from user
+                        logger.info(
+                            "2FA required. Please enter the 6-digit code:")
+                        auth_code = input("Enter 6-digit 2FA code: ").strip()
+
+                        # Find all digit input boxes
+                        input_boxes = two_factor_container.find_elements(
+                            By.CSS_SELECTOR, "input[type='text']")
+
+                        # Enter code digit by digit
+                        # Only take first 6 digits
+                        for i, digit in enumerate(auth_code[:6]):
+                            input_boxes[i].send_keys(digit)
+
+                        # Wait for processing and then try to find browser link again
+                        browser_link = WebDriverWait(self.driver, 20).until(
+                            EC.element_to_be_clickable(
+                                (By.CSS_SELECTOR,
+                                 "[data-qa='ssb_redirect_open_in_browser']")
+                            )
+                        )
+                    except Exception as e:
+                        logger.error(
+                            f"Failed to handle 2FA or find browser link: {str(e)}")
+                        raise
+
                 browser_link.click()
                 logger.info("Checking login status...")
                 time.sleep(10)
@@ -271,8 +309,10 @@ class SlackHuddleRecorder:
                         # Find the peer list and count huddle participants
                         peer_list = self.driver.find_element(
                             By.CLASS_NAME, "p-peer_tile_list")
-                        participant_tiles = peer_list.find_elements(
+                        all_tiles = peer_list.find_elements(
                             By.CLASS_NAME, "p-peer_tile__container")
+                        participant_tiles = [tile for tile in all_tiles
+                                             if not tile.find_elements(By.CLASS_NAME, "p-peer_tile__invite_status_overlay")]
 
                         if len(participant_tiles) <= 1:
                             logger.info(
