@@ -1,5 +1,5 @@
-from fastapi import FastAPI, Depends, HTTPException, Header
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, Depends, HTTPException, Header, Cookie
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from . import crud, models, schemas
@@ -9,6 +9,7 @@ from pydantic import BaseModel
 import requests
 from typing import Optional
 import logging
+from fastapi import Response
 
 app = FastAPI()
 
@@ -33,10 +34,11 @@ class MeetLinkRequest(BaseModel):
     meet_url: str
 
 
-def verify_token(x_token: Optional[str] = Header(None)):
-    if not x_token or x_token != AUTH_TOKEN:
+def verify_token(x_token: Optional[str] = Header(None), authToken: Optional[str] = Cookie(None)):
+    token = x_token or authToken
+    if not token or token != AUTH_TOKEN:
         raise HTTPException(status_code=403, detail="Not authenticated")
-    return x_token
+    return token
 
 
 @app.on_event("startup")
@@ -56,7 +58,7 @@ def list_recordings(skip: int = 0, limit: int = 100, db: Session = Depends(get_d
 
 
 @app.get("/recordings/{recording_id}/audio")
-def get_recording_audio(recording_id: int, db: Session = Depends(get_db), token: str = Depends(verify_token)):
+def get_recording_audio(recording_id: int, db: Session = Depends(get_db)):
     recording = crud.get_recording(db, recording_id=recording_id)
     if recording is None:
         raise HTTPException(status_code=404, detail="Recording not found")
@@ -73,7 +75,7 @@ def get_recording_audio(recording_id: int, db: Session = Depends(get_db), token:
 
 
 @app.get("/recordings/{recording_id}/transcript")
-def get_recording_transcript(recording_id: int, db: Session = Depends(get_db), token: str = Depends(verify_token)):
+def get_recording_transcript(recording_id: int, db: Session = Depends(get_db)):
     recording = crud.get_recording(db, recording_id=recording_id)
     if recording is None:
         raise HTTPException(status_code=404, detail="Recording not found")
@@ -151,5 +153,7 @@ class LoginRequest(BaseModel):
 @app.post("/login")
 def login(credentials: LoginRequest):
     if credentials.password == GLOBAL_PASSWORD:
-        return {"token": AUTH_TOKEN}
+        response = JSONResponse({"token": AUTH_TOKEN})
+        response.set_cookie(key="authToken", value=AUTH_TOKEN, httponly=True)
+        return response
     raise HTTPException(status_code=401, detail="Incorrect password")
