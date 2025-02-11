@@ -486,7 +486,7 @@ class SlackHuddleRecorder:
 
                 # Ignore huddle events if we're in cooldown period
                 if time.time() - self.last_huddle_leave_time < 30:
-                    logger.info("Ignoring huddle event - in cooldown period")
+                    logger.info("Ignoring event - in cooldown period")
                     if hasattr(req, 'envelope_id'):
                         response = SocketModeResponse(
                             envelope_id=req.envelope_id)
@@ -496,7 +496,7 @@ class SlackHuddleRecorder:
                 # Ignore huddle events if we're already in or joining a huddle
                 if self.is_joining_huddle or self.recording:
                     logger.info(
-                        "Ignoring huddle event - already in or joining a huddle")
+                        "Ignoring event - already in or joining a huddle")
                     if hasattr(req, 'envelope_id'):
                         response = SocketModeResponse(
                             envelope_id=req.envelope_id)
