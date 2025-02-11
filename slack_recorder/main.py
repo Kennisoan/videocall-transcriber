@@ -518,12 +518,14 @@ class SlackHuddleRecorder:
                 # Handle message command events
                 if event.get("type") == "message":
                     message = event.get("text")
-                    if message.startswith(":joinhuddle"):
-                        logger.info(f"Join huddle command detected: {message}")
-                        huddle_link = message.split(" ")[1]
-                        huddle_link = huddle_link.replace(
-                            "<", "").replace(">", "")
-                        self.join_huddle(huddle_link)
+                    if message:
+                        if message.startswith(":joinhuddle"):
+                            logger.info(
+                                f"Join huddle command detected: {message}")
+                            huddle_link = message.split(" ")[1]
+                            huddle_link = huddle_link.replace(
+                                "<", "").replace(">", "")
+                            self.join_huddle(huddle_link)
 
                 if hasattr(req, 'envelope_id'):
                     response = SocketModeResponse(
