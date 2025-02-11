@@ -303,12 +303,14 @@ class SlackHuddleRecorder:
             self._js_click(join_btn)
 
             # Wait for the huddle to load
+            logger.info("Waiting for huddle to load...")
             WebDriverWait(self.driver, 20).until(
                 EC.presence_of_element_located(
                     (By.CSS_SELECTOR,
                      "div[data-qa='peer-tile--self']")
                 )
             )
+            logger.info("Huddle loaded")
 
             # Extract huddle name
             try:
