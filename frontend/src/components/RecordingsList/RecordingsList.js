@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import useSWR from 'swr';
 import { parseISO, formatISO } from 'date-fns';
 import RecordingCard from '../RecordingCard';
+import SlackRecordingCard from '../SlackRecordingCard';
 import Container from '../Container';
 import Header from '../Header';
 import RecordCallModal from '../RecordCallModal/RecordCallModal';
@@ -54,9 +55,19 @@ function RecordingsList({ state }) {
             Нет записей звонков.
           </div>
         ) : (
-          sortedRecordings.map((recording) => (
-            <RecordingCard key={recording.id} recording={recording} />
-          ))
+          sortedRecordings.map((recording) =>
+            recording.source === 'slack' ? (
+              <SlackRecordingCard
+                key={recording.id}
+                recording={recording}
+              />
+            ) : (
+              <RecordingCard
+                key={recording.id}
+                recording={recording}
+              />
+            )
+          )
         )}
       </div>
     </Container>

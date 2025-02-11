@@ -1,0 +1,48 @@
+.callSpeakers {
+  display: flex;
+  align-items: center;
+}
+
+.callSpeakers > *:nth-child(1) {
+  z-index: 4;
+}
+
+.callSpeakers > *:nth-child(2) {
+  z-index: 3;
+}
+
+.callSpeakers > *:nth-child(3) {
+  z-index: 2;
+}
+
+.callSpeakers > *:nth-child(4) {
+  z-index: 1;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  outline: 2px solid #fff;
+  object-fit: cover;
+  margin-left: -6px;
+}
+
+.avatar:first-child {
+  margin-left: 0;
+}
+
+.extraAvatar {
+  width: 32px;
+  height: 32px;
+  background-color: #eee;
+  color: var(--color-text-40);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: -0.02em;
+  margin-left: -6px;
+}
