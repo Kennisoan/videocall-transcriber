@@ -303,7 +303,12 @@ class SlackHuddleRecorder:
             self._js_click(join_btn)
 
             # Wait for the huddle to load
-            time.sleep(10)
+            WebDriverWait(self.driver, 20).until(
+                EC.presence_of_element_located(
+                    (By.CSS_SELECTOR,
+                     "div[data-qa='peer-tile--self']")
+                )
+            )
 
             # Extract huddle name
             try:
@@ -318,11 +323,12 @@ class SlackHuddleRecorder:
                             self.current_huddle_name)
             except Exception as e:
                 logger.warning("Could not extract huddle name: %s", str(e))
-                self.current_huddle_name = ""
+                self.current_huddle_name = "huddle"
 
             # Start recording
             timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-            self.start_recording(f"huddle_recording_{timestamp}.wav")
+            self.start_recording(
+                f"huddle_recording_{self.current_huddle_name}_{timestamp}.wav")
 
             # Monitor huddle status
             def check_huddle_status():
