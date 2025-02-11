@@ -3,6 +3,12 @@ from datetime import datetime
 from typing import Optional, List, Dict
 
 
+class SpeakerInfo(BaseModel):
+    name: str
+    profile_pic: str
+    duration: float
+
+
 class TranscriptSegment(BaseModel):
     speaker: str
     text: str
@@ -29,7 +35,7 @@ class Recording(RecordingBase):
     filename: str
     transcript: Optional[str] = None
     diarized_transcript: Optional[List[TranscriptSegment]] = None
-    speakers: Optional[Dict[str, str]] = None
+    speakers: Optional[Dict[str, SpeakerInfo]] = None
 
     class Config:
         orm_mode = True

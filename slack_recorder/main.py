@@ -277,6 +277,10 @@ class SlackHuddleRecorder:
             self.is_joining_huddle = True
             self.current_huddle_link = huddle_link
             self.speaker_records = []
+            # Initialize speaker accumulators for duration and metadata
+            self.speaker_durations = {}   # {speaker_name: total_seconds}
+            # {speaker_name: profile_pic_url (or None)}
+            self.speaker_metadata = {}
             logger.info(f"Joining huddle: {huddle_link}")
 
             self.driver.get(huddle_link)
@@ -330,13 +334,18 @@ class SlackHuddleRecorder:
             # Start recording
             timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             self.start_recording(
-                f"huddle_recording_{self.current_huddle_name}_{timestamp}.wav")
+                f"huddle_recording_{timestamp}.wav")
 
             # Monitor huddle status
             def check_huddle_status():
+                last_check = time.time()  # Used to compute elapsed polling time
                 previous_speakers = []  # Track the last state of active speakers
 
                 while self.recording:
+                    current_time = time.time()
+                    delta = current_time - last_check
+                    last_check = current_time
+
                     try:
                         # Find the peer list and retrieve participant tiles
                         peer_list = self.driver.find_element(
@@ -354,7 +363,7 @@ class SlackHuddleRecorder:
                             self.stop_recording()
                             break
 
-                        # Determine the current active speakers
+                        # Determine the current active speakers and update durations/metadata
                         current_speakers = []
                         for tile in participant_tiles:
                             # Check if the tile element itself indicates an active speaker
@@ -365,6 +374,19 @@ class SlackHuddleRecorder:
                                 if aria_label:
                                     name = aria_label.split(",")[0].strip()
                                     current_speakers.append(name)
+                                    # Update duration for this speaker
+                                    self.speaker_durations[name] = self.speaker_durations.get(
+                                        name, 0) + delta
+                                    # Update speaker metadata if not already captured
+                                    if name not in self.speaker_metadata:
+                                        try:
+                                            img_element = tile.find_element(
+                                                By.TAG_NAME, "img")
+                                            profile_pic = img_element.get_attribute(
+                                                "src")
+                                        except Exception as img_error:
+                                            profile_pic = None
+                                        self.speaker_metadata[name] = profile_pic
 
                         # Sort for consistent ordering
                         current_speakers.sort()
@@ -372,7 +394,7 @@ class SlackHuddleRecorder:
                         # If the list of active speakers has changed, add a new record
                         if current_speakers != previous_speakers:
                             timestamp = datetime.now(
-                                timezone.utc).isoformat()  # use UTC timestamp
+                                timezone.utc).isoformat()
                             self.speaker_records.append({
                                 "timestamp": timestamp,
                                 "speakers": current_speakers.copy()
@@ -465,7 +487,8 @@ class SlackHuddleRecorder:
                         meeting_name=self.current_huddle_name,
                         transcript=transcript["text"],
                         diarized_transcript=transcript["diarized"],
-                        created_at=self.recording_launch_time
+                        created_at=self.recording_launch_time,
+                        speakers=self._get_speaker_summary()
                     )
                 except Exception as e:
                     logger.error(f"Failed to process recording: {str(e)}")
@@ -477,13 +500,28 @@ class SlackHuddleRecorder:
                             source="slack",
                             meeting_name=self.current_huddle_name,
                             transcript=None,
-                            created_at=self.recording_launch_time
+                            created_at=self.recording_launch_time,
+                            speakers=self._get_speaker_summary()
                         )
                     except Exception as db_error:
                         logger.error(
                             f"Failed to add recording to database: {str(db_error)}")
 
             self.current_huddle_name = ""
+
+    def _get_speaker_summary(self):
+        """
+        Generate a summary dictionary of speakers with their name, profile picture, 
+        and total speaking duration (in seconds).
+        """
+        summary = {}
+        for name in self.speaker_metadata:
+            summary[name] = {
+                "name": name,
+                "profile_pic": self.speaker_metadata.get(name),
+                "duration": round(self.speaker_durations.get(name, 0), 2)
+            }
+        return summary
 
     def process_event(self, client, req):
         """Process incoming Slack events"""
