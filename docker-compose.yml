@@ -15,23 +15,12 @@ services:
     volumes:
       - ./recordings_data:/home/pulse/app/recordings
 
-  postgres:
-    image: postgres:latest
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
-    ports:
-      - '5432:5432'
-    networks:
-      - vct_network
-
   slack_recorder:
     build: ./slack_recorder
     container_name: slack_recorder
     env_file: ./slack_recorder/.env
     environment:
-      POSTGRES_HOST: postgres
+      POSTGRES_HOST: db-postgresql-fra1-80115-do-user-18199429-0.d.db.ondigitalocean.com
       CHROME_BIN: /usr/bin/google-chrome-stable
       CHROMEDRIVER_PATH: /usr/bin/chromedriver
     networks:
