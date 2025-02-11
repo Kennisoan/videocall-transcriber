@@ -15,12 +15,23 @@ services:
     volumes:
       - ./recordings_data:/home/pulse/app/recordings
 
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - '5432:5432'
+    networks:
+      - vct_network
+
   slack_recorder:
     build: ./slack_recorder
     container_name: slack_recorder
     env_file: ./slack_recorder/.env
     environment:
-      POSTGRES_HOST: db-postgresql-fra1-80115-do-user-18199429-0.d.db.ondigitalocean.com
+      POSTGRES_HOST: postgres
       CHROME_BIN: /usr/bin/google-chrome-stable
       CHROMEDRIVER_PATH: /usr/bin/chromedriver
     networks:
@@ -38,7 +49,7 @@ services:
       - ./recordings_data:/recordings
     networks:
       - vct_network
-      - frontend
+      # - frontend
     command: uvicorn src.app.main:app --host 0.0.0.0 --port 8000
 
   frontend:
@@ -51,7 +62,7 @@ services:
       - backend
     networks:
       - vct_network
-      - frontend
+      # - frontend
 
   nginx:
     image: nginx:latest
@@ -60,16 +71,16 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - /var/run/docker.sock:/tmp/docker.sock:ro
     depends_on:
-      - frontend
+      # - frontend
       - backend
     networks:
-      - frontend
+      # - frontend
       - vct_network
 
 networks:
-  frontend:
-    external: true
-    name: nginx-proxy
+  # frontend:
+  # external: true
+  # name: nginx-proxy
   vct_network:
     driver: bridge
     driver_opts:
