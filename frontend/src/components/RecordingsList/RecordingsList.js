@@ -18,7 +18,7 @@ function RecordingsList({ state }) {
   if (!recordings)
     return (
       <div className={styles.loader_wrapper}>
-        <Loader size={16} className={styles.loader} />
+        <Loader size={24} className={styles.loader} />
       </div>
     );
 
