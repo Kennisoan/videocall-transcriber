@@ -61,6 +61,10 @@ function RecordingCard({ recording }) {
     );
   };
 
+  const diarizedTranscriptString = recording.diarized_transcript
+    .map((segment) => `${segment.speaker}: ${segment.text}`)
+    .join('\n');
+
   return (
     <Card className={styles.card}>
       {/* Card Header */}
@@ -100,7 +104,8 @@ function RecordingCard({ recording }) {
       <LabeledText label="Транскрипция">
         <ExpandableText
           text={
-            recording.transcript || 'Не удалось создать транскрипцию.'
+            diarizedTranscriptString ||
+            'Не удалось создать транскрипцию.'
           }
         />
       </LabeledText>
