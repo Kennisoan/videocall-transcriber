@@ -49,7 +49,10 @@ RUN mkdir -p /home/pulse/app/recordings && \
 
 # Set up PulseAudio configuration and entrypoint script
 RUN cp /home/pulse/app/pulse/default.pa /home/pulse/.config/pulse/default.pa && \
-    cp /home/pulse/app/scripts/entrypoint.sh /entrypoint.sh && chmod +x /entrypoint.sh
+    chmod 644 /home/pulse/.config/pulse/default.pa && \
+    cp /home/pulse/app/scripts/entrypoint.sh /entrypoint.sh && \
+    chmod +x /entrypoint.sh && \
+    chown pulse:pulse /entrypoint.sh
 
 USER pulse
 WORKDIR /home/pulse/app
