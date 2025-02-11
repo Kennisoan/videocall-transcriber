@@ -63,7 +63,7 @@ function RecordingCard({ recording }) {
 
   const diarizedTranscriptString = recording.diarized_transcript
     ? recording.diarized_transcript
-        .map((segment) => `${segment.speaker}: ${segment.text}`)
+        .map((segment) => `— ${segment.text}`)
         .join('\n')
     : 'Не удалось создать транскрипцию.';
 
