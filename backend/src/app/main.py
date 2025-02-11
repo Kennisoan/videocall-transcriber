@@ -9,14 +9,13 @@ from pydantic import BaseModel
 import requests
 from typing import Optional
 import logging
-from fastapi import Response
 
 app = FastAPI()
 
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:1234",
+    allow_origins=["http://localhost:1234", "http://localhost:3000",
                    "http://localhost:80", "http://localhost"],
     allow_credentials=True,
     allow_methods=["*"],
@@ -43,6 +42,7 @@ def verify_token(x_token: Optional[str] = Header(None), authToken: Optional[str]
 
 @app.on_event("startup")
 def startup_event():
+    # Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
 
