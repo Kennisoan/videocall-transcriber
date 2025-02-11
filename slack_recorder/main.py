@@ -507,6 +507,7 @@ class SlackHuddleRecorder:
                 event = req.payload.get("event", {})
                 logger.info(f"Event callback details: {event}")
 
+                # Handle huddle start events
                 if event.get("type") == "message" and event.get("subtype") == "huddle_thread":
                     logger.info(f"Huddle event detected: {event}")
                     huddle_link = event.get("room", {}).get("huddle_link")
@@ -514,11 +515,20 @@ class SlackHuddleRecorder:
                         logger.info(f"Huddle link found: {huddle_link}")
                         self.join_huddle(huddle_link)
 
-                    # Acknowledge the event
-                    if hasattr(req, 'envelope_id'):
-                        response = SocketModeResponse(
-                            envelope_id=req.envelope_id)
-                        client.send_socket_mode_response(response)
+                # Handle message command events
+                if event.get("type") == "message":
+                    message = event.get("text")
+                    if message.startswith(":joinhuddle"):
+                        logger.info(f"Join huddle command detected: {message}")
+                        huddle_link = message.split(" ")[1]
+                        huddle_link = huddle_link.replace(
+                            "<", "").replace(">", "")
+                        self.join_huddle(huddle_link)
+
+                if hasattr(req, 'envelope_id'):
+                    response = SocketModeResponse(
+                        envelope_id=req.envelope_id)
+                    client.send_socket_mode_response(response)
 
         except Exception as e:
             logger.error(f"Error processing event: {str(e)}")
