@@ -16,8 +16,8 @@ function ExpandableText({ text, lines = 3 }) {
       const lineHeight = parseInt(
         getComputedStyle(content).lineHeight
       );
-      const maxHeight = lineHeight * lines;
-      setIsClampable(content.scrollHeight > maxHeight + 1);
+      const maxHeight = lineHeight * (lines + 1);
+      setIsClampable(content.scrollHeight > maxHeight);
     };
 
     checkClampable();
