@@ -13,7 +13,7 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=List[schemas.RecordingList])
+@router.get("", response_model=List[schemas.RecordingList])
 def list_recordings(
     skip: int = 0,
     limit: int = 100,
