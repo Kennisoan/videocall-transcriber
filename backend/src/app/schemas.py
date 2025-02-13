@@ -46,3 +46,20 @@ class Recording(RecordingBase):
 
 class DeleteResponse(BaseModel):
     message: str
+
+
+class RecordingList(BaseModel):
+    id: int
+    created_at: datetime
+    source: str
+    meeting_name: Optional[str] = None
+    filename: str
+    duration: Optional[int] = None
+    tldr: Optional[str] = None
+    speakers: Optional[Dict[str, SpeakerInfo]] = None
+
+    class Config:
+        orm_mode = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat() + 'Z'
+        }

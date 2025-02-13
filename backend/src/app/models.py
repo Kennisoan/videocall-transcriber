@@ -15,3 +15,5 @@ class Recording(Base):
     transcript = Column(Text)
     diarized_transcript = Column(JSON)
     speakers = Column(JSON)
+    tldr = Column(Text, nullable=True)
+    duration = Column(Integer, nullable=True)
