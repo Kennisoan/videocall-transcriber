@@ -14,6 +14,8 @@ class TranscriptionManager:
         openai.base_url = os.getenv(
             'OPENAI_BASE_URL', 'https://api.openai.com/v1')
         self.client = openai.Client()
+        self.SPEAKER_TIMESTAMP_OFFSET = timedelta(
+            seconds=2)
 
     def get_active_speaker(self, query_time, events, fallback="unknown"):
         """
@@ -49,8 +51,8 @@ class TranscriptionManager:
         """
         # Build a list of valid speaker events (only those with non-empty speakers)
         events = [
-            {'time': datetime.fromisoformat(
-                evt['timestamp']), 'speakers': evt['speakers']}
+            {'time': datetime.fromisoformat(evt['timestamp']) - self.SPEAKER_TIMESTAMP_OFFSET,
+             'speakers': evt['speakers']}
             for evt in speaker_timestamps if evt['speakers']
         ]
         events.sort(key=lambda x: x['time'])
