@@ -126,6 +126,26 @@ class TranscriptionManager:
 
         return merged_segments
 
+    def generate_tldr(self, transcript_text):
+        """Generate a TLDR summary for the transcript using GPT-4"""
+        try:
+            prompt = """Our Slack calls are recorded and transcribed for later use, but it's hard to find a needed call in our system. Our solution — provide every recording a short field called "what's this call about". The idea is to have very short (7 words per topic max) but precise overview of a call, for example "Конфигурация SSL для  проекта по записи звноков, ...", where the topics are listed with commas. Your task is to provide a "what's this call about" filed for the call below. Only return the text of the field and nothing else. Your answer must be in Russian.
+
+Transcript:
+{}""".format(transcript_text)
+
+            response = self.client.chat.completions.create(
+                model="gpt-4",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                max_tokens=75
+            )
+
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            logger.error(f"Error generating TLDR: {str(e)}")
+            return None
+
     def transcribe_audio(self, audio_path, speaker_timestamps=None):
         try:
             logger.info(f"Starting transcription for: {audio_path}")
@@ -219,9 +239,15 @@ class TranscriptionManager:
                 except Exception as e:
                     logger.error(f"Error during diarization: {str(e)}")
 
+            # Generate TLDR after successful transcription
+            tldr = None
+            if transcription_text:
+                tldr = self.generate_tldr(transcription_text)
+
             return {
                 'text': transcription_text,
-                'diarized': diarized_segments
+                'diarized': diarized_segments,
+                'tldr': tldr
             }
 
         except Exception as e:
