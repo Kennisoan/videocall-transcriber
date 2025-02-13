@@ -14,7 +14,7 @@
     rgba(255, 255, 255, 0) 100%
   );
   font-weight: 700;
-  z-index: 2;
+  z-index: 100;
 }
 
 .leading {
