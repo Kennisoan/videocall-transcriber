@@ -12,10 +12,10 @@ import {
   Headphones,
   FileText,
   Trash2,
-  Download,
   Hash,
   Clock,
 } from 'react-feather';
+import Transcript from '../Transcript';
 
 import styles from './SlackRecordingCard.module.css';
 
@@ -64,12 +64,6 @@ function SlackRecordingCard({ recording }) {
     );
   };
 
-  const diarizedTranscriptString = recording.diarized_transcript
-    ? recording.diarized_transcript
-        .map((segment) => `— ${segment.text}`)
-        .join('\n')
-    : 'Не удалось создать транскрипцию.';
-
   return (
     <Card className={styles.card}>
       {/* Card Header */}
@@ -78,40 +72,56 @@ function SlackRecordingCard({ recording }) {
           {formattedDate}
           <span className={styles.title_separator}>∙</span>
           <HeaderIcon name={recording.source} />
-          <span className={styles.title_secondary}>{source}</span>
+          <span className={styles.title_secondary}>
+            {recording.meeting_name || 'Не определён'}
+          </span>
         </div>
         <div className={styles.controls}>
           <HeaderDropdown recording={recording} />
         </div>
       </div>
 
-      {/* Details */}
-      <LabeledText label="Транскрипция">
-        <ExpandableText
-          text={
-            diarizedTranscriptString ||
-            'Не удалось создать транскрипцию.'
-          }
-        />
-      </LabeledText>
+      {/* TLDR */}
+      {recording.tldr && (
+        <LabeledText label="О чём был звонок">
+          <ExpandableText text={recording.tldr} />
+        </LabeledText>
+      )}
 
       {/* Footer */}
       <div className={styles.footer}>
         <LabeledText label="Участники">
           <CallSpeakers speakers={recording.speakers} />
         </LabeledText>
-        <LabeledText label="Канал">
-          <div className={styles.footer_info}>
-            <Hash size={16} strokeWidth={3} />
-            <span>{recording.meeting_name || 'Не определён'}</span>
-          </div>
-        </LabeledText>
         <LabeledText label="Продолжительность">
           <div className={styles.footer_info}>
             <Clock size={16} strokeWidth={3} />
-            <span>{recording.duration || 'Не определена'}</span>
+            <span>
+              {formatDuration(recording.duration) || 'Не определена'}
+            </span>
           </div>
         </LabeledText>
+      </div>
+
+      {/* Actions */}
+      <div className={styles.actions}>
+        <Transcript
+          recording={recording}
+          title={formattedDate}
+          root={
+            <button className={styles.action_button}>
+              <FileText size={16} />
+              Транскрипция
+            </button>
+          }
+        />
+        <button
+          className={`${styles.action_button} ${styles.action_button_audio}`}
+          onClick={handleAudioDownload}
+        >
+          <Headphones size={16} />
+          Аудио
+        </button>
       </div>
     </Card>
   );
@@ -150,15 +160,6 @@ function HeaderDropdown({ recording }) {
         {
           label: (
             <>
-              <Download size={18} />
-              <p>Скачать аудио</p>
-            </>
-          ),
-          onClick: () => handleAudioDownload(recording),
-        },
-        {
-          label: (
-            <>
               <Trash2 size={18} color="#ff424d" />
               <p style={{ color: '#ff424d' }}>Удалить запись</p>
             </>
@@ -168,6 +169,18 @@ function HeaderDropdown({ recording }) {
       ]}
     />
   );
+}
+
+function formatDuration(duration) {
+  const hours = Math.floor(duration / 3600);
+  const minutes = Math.floor((duration % 3600) / 60);
+  const seconds = duration % 60;
+
+  if (hours > 0) {
+    return `${hours} час ${minutes} мин`;
+  } else if (minutes > 0) {
+    return `${minutes} мин ${seconds} сек`;
+  }
 }
 
 export default SlackRecordingCard;
