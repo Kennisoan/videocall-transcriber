@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from database import DatabaseManager
 from transcription import TranscriptionManager
 from audio import AudioSystem
+from selenium.common.exceptions import StaleElementReferenceException
 
 
 # Configure logging
@@ -460,6 +461,11 @@ class SlackHuddleRecorder:
             self.audio_system.stop_recording()
             self.recorder_thread.join()
             self.recording = False
+            recording_end_time = datetime.now(timezone.utc)
+
+            # Calculate duration in seconds
+            duration = int(
+                (recording_end_time - self.recording_launch_time).total_seconds())
 
             # Leave the huddle
             try:
@@ -487,7 +493,7 @@ class SlackHuddleRecorder:
                         self.speaker_records
                     )
 
-                    # Add to database including the audio launch time for syncing purposes
+                    # Add to database including duration and tldr
                     self.db_manager.add_recording(
                         filename=os.path.basename(
                             self.current_recording_filename),
@@ -496,7 +502,9 @@ class SlackHuddleRecorder:
                         transcript=transcript["text"],
                         diarized_transcript=transcript["diarized"],
                         created_at=self.recording_launch_time,
-                        speakers=self._get_speaker_summary()
+                        speakers=self._get_speaker_summary(),
+                        duration=duration,
+                        tldr=transcript["tldr"]
                     )
                 except Exception as e:
                     logger.error(f"Failed to process recording: {str(e)}")
@@ -509,7 +517,9 @@ class SlackHuddleRecorder:
                             meeting_name=self.current_huddle_name,
                             transcript=None,
                             created_at=self.recording_launch_time,
-                            speakers=self._get_speaker_summary()
+                            speakers=self._get_speaker_summary(),
+                            duration=duration,
+                            tldr=None
                         )
                     except Exception as db_error:
                         logger.error(
