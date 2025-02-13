@@ -27,6 +27,7 @@ services:
       - vct_network
     volumes:
       - ./recordings_data:/home/pulse/app/recordings
+      - /dev/shm:/dev/shm
 
   backend:
     build:
