@@ -10,6 +10,7 @@ function Modal({
   footer,
   footerClassName,
   onClose,
+  onOpen,
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -18,9 +19,14 @@ function Modal({
     onClose?.();
   };
 
+  const openModal = () => {
+    setIsOpen(true);
+    onOpen?.();
+  };
+
   return (
     <>
-      {cloneElement(root, { onClick: () => setIsOpen(true) })}
+      {cloneElement(root, { onClick: openModal })}
 
       <Dialog open={isOpen} onClose={closeModal}>
         <div className={styles.wrapper}>
