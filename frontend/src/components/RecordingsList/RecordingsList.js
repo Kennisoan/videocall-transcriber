@@ -1,19 +1,70 @@
 import React, { useState } from 'react';
 import useSWR from 'swr';
-import { parseISO, formatISO } from 'date-fns';
+import {
+  parseISO,
+  formatISO,
+  isToday,
+  isYesterday,
+  isThisWeek,
+} from 'date-fns';
 import RecordingCard from '../RecordingCard';
 import SlackRecordingCard from '../SlackRecordingCard';
 import Container from '../Container';
 import Header from '../Header';
 import RecordCallModal from '../RecordCallModal/RecordCallModal';
-import { Plus, Loader } from 'react-feather';
+import { Plus, Loader, ChevronDown } from 'react-feather';
 import { fetcher } from '../../api/client';
 import styles from './RecordingsList.module.css';
 
+const CategorySection = ({ title, recordings }) => {
+  if (recordings.length === 0) return null;
+
+  return (
+    <div className={styles.categorySection}>
+      <h2 className={styles.categoryHeader}>{title}</h2>
+      {recordings.map((recording) =>
+        recording.source === 'slack' ? (
+          <SlackRecordingCard
+            key={recording.id}
+            recording={recording}
+          />
+        ) : (
+          <RecordingCard key={recording.id} recording={recording} />
+        )
+      )}
+    </div>
+  );
+};
+
 function RecordingsList({ state }) {
+  const [showEarlier, setShowEarlier] = useState(false);
   const { data: recordings, error } = useSWR('/recordings', fetcher, {
     refreshInterval: 10000,
   });
+
+  const categorizeRecordings = (recordings) => {
+    const categories = {
+      today: [],
+      yesterday: [],
+      thisWeek: [],
+      others: [],
+    };
+
+    recordings.forEach((recording) => {
+      const date = parseISO(recording.created_at);
+      if (isToday(date)) {
+        categories.today.push(recording);
+      } else if (isYesterday(date)) {
+        categories.yesterday.push(recording);
+      } else if (isThisWeek(date)) {
+        categories.thisWeek.push(recording);
+      } else {
+        categories.others.push(recording);
+      }
+    });
+
+    return categories;
+  };
 
   if (error) return <div>Failed to load recordings</div>;
   if (!recordings)
@@ -31,6 +82,20 @@ function RecordingsList({ state }) {
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       }),
     }));
+
+  const categories = categorizeRecordings(sortedRecordings);
+
+  const hasEarlierRecordings =
+    categories.yesterday.length > 0 ||
+    categories.thisWeek.length > 0 ||
+    categories.others.length > 0;
+
+  const categoryConfig = [
+    { key: 'today', title: 'Сегодня' },
+    { key: 'yesterday', title: 'Вчера' },
+    { key: 'thisWeek', title: 'На этой неделе' },
+    { key: 'others', title: 'Ранее' },
+  ];
 
   return (
     <Container className={styles.wrapper}>
@@ -55,19 +120,41 @@ function RecordingsList({ state }) {
             Нет записей звонков.
           </div>
         ) : (
-          sortedRecordings.map((recording) =>
-            recording.source === 'slack' ? (
-              <SlackRecordingCard
-                key={recording.id}
-                recording={recording}
-              />
-            ) : (
-              <RecordingCard
-                key={recording.id}
-                recording={recording}
-              />
-            )
-          )
+          <>
+            <CategorySection
+              key="today"
+              title="Сегодня"
+              recordings={categories.today}
+            />
+            {categories.today.length === 0 && !showEarlier && (
+              <div className={styles.placeholder}>
+                Сегодня нет записей.
+              </div>
+            )}
+            {hasEarlierRecordings && (
+              <div className={styles.earlierSection}>
+                {!showEarlier ? (
+                  <button
+                    className={styles.showEarlierButton}
+                    onClick={() => setShowEarlier(true)}
+                  >
+                    <ChevronDown size={16} />
+                    Показать более ранние записи
+                  </button>
+                ) : (
+                  <div className={styles.earlierRecordings}>
+                    {categoryConfig.slice(1).map(({ key, title }) => (
+                      <CategorySection
+                        key={key}
+                        title={title}
+                        recordings={categories[key]}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
     </Container>

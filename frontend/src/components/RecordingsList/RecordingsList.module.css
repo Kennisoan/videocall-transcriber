@@ -10,11 +10,15 @@
 .recordings {
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
 
 .placeholder {
-  color: #888;
+  color: var(--color-text-60);
+  border-radius: 12px;
+  border: 1px dashed rgba(0, 0, 0, 0.2);
+  text-align: center;
+  padding: 48px 16px;
+  margin-bottom: 22px;
 }
 
 .newRecordingButton {
@@ -58,5 +62,64 @@
   }
   100% {
     transform: rotate(360deg);
+  }
+}
+
+.categorySection {
+  margin-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.categorySection:last-child {
+  margin-bottom: 0;
+}
+
+.categoryHeader {
+  font-size: 16px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.earlierSection {
+  margin-top: 8px;
+}
+
+.showEarlierButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  background-color: transparent;
+  border: none;
+  border-radius: 12px;
+  color: var(--color-text);
+  opacity: 0.5;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.showEarlierButton:hover {
+  opacity: 1;
+}
+
+.showEarlierButton:active {
+  transform: scale(0.98);
+}
+
+.earlierRecordings {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
