@@ -84,7 +84,7 @@ function SlackRecordingCard({ recording }) {
       {/* TLDR */}
       {recording.tldr && (
         <LabeledText label="О чём был звонок">
-          <ExpandableText text={recording.tldr} />
+          <ExpandableText text={recording.tldr} lines={2} />
         </LabeledText>
       )}
 
@@ -180,6 +180,10 @@ function formatDuration(duration) {
     return `${hours} час ${minutes} мин`;
   } else if (minutes > 0) {
     return `${minutes} мин ${seconds} сек`;
+  } else if (seconds > 0) {
+    return `${seconds} сек`;
+  } else {
+    return 'Не определена';
   }
 }
 

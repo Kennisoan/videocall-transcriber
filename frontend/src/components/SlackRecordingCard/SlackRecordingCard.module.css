@@ -49,8 +49,8 @@
     gap: 0px;
   }
 
-  .title_separator,
-  img {
+  .title .title_separator,
+  .title img {
     display: none;
   }
 
