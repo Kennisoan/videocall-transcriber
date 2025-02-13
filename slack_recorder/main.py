@@ -341,6 +341,8 @@ class SlackHuddleRecorder:
                 last_check = time.time()  # Used to compute elapsed polling time
                 previous_speakers = []  # Track the last state of active speakers
 
+                time.sleep(1)
+
                 while self.recording:
                     current_time = time.time()
                     delta = current_time - last_check
@@ -403,6 +405,12 @@ class SlackHuddleRecorder:
 
                         # Poll every 500ms
                         time.sleep(0.5)
+
+                    except StaleElementReferenceException:
+                        logger.debug(
+                            "Stale element encountered in check_huddle_status loop. Retrying...")
+                        time.sleep(0.5)
+                        continue
 
                     except Exception as e:
                         logger.info(f"Huddle ended or disconnected: {str(e)}")
