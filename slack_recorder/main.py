@@ -342,8 +342,6 @@ class SlackHuddleRecorder:
                 last_check = time.time()  # Used to compute elapsed polling time
                 previous_speakers = []  # Track the last state of active speakers
 
-                time.sleep(1)
-
                 while self.recording:
                     current_time = time.time()
                     delta = current_time - last_check
@@ -359,8 +357,8 @@ class SlackHuddleRecorder:
                         participant_tiles = [tile for tile in all_tiles
                                              if not tile.find_elements(By.CLASS_NAME, "p-peer_tile__invite_status_overlay")]
 
-                        # If only the bot remains, stop recording
-                        if len(participant_tiles) <= 1:
+                        # If only the bot remains and the call started more than 10 seconds ago, stop recording
+                        if len(participant_tiles) <= 1 and time.time() - self.recording_launch_time.timestamp() > 10:
                             logger.info(
                                 "Only bot remaining in huddle, disconnecting...")
                             self.stop_recording()
@@ -446,11 +444,10 @@ class SlackHuddleRecorder:
     def _record(self):
         """Internal method to handle recording"""
         try:
-            self.audio_system.start_recording(self.current_recording_filename)
-            # Save the exact moment when audio recording has launched
             self.recording_launch_time = datetime.now(timezone.utc)
             logger.info("Audio recording launched at: %s",
                         self.recording_launch_time.isoformat())
+            self.audio_system.start_recording(self.current_recording_filename)
         except Exception as e:
             logger.error(f"Recording failed: {str(e)}")
             self.recording = False
@@ -466,6 +463,8 @@ class SlackHuddleRecorder:
             # Calculate duration in seconds
             duration = int(
                 (recording_end_time - self.recording_launch_time).total_seconds())
+            logger.info(
+                f"Recording duration: {duration} seconds (started at {self.recording_launch_time.isoformat()} and ended at {recording_end_time.isoformat()})")
 
             # Leave the huddle
             try:
@@ -515,11 +514,11 @@ class SlackHuddleRecorder:
                                 self.current_recording_filename),
                             source="slack",
                             meeting_name=self.current_huddle_name,
-                            transcript=None,
+                            transcript=transcript.get("text"),
                             created_at=self.recording_launch_time,
                             speakers=self._get_speaker_summary(),
                             duration=duration,
-                            tldr=None
+                            tldr=transcript.get("tldr")
                         )
                     except Exception as db_error:
                         logger.error(
