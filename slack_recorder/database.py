@@ -21,6 +21,8 @@ class Recording(Base):
     transcript = Column(Text)
     diarized_transcript = Column(JSON)
     speakers = Column(JSON)
+    tldr = Column(Text, nullable=True)
+    duration = Column(Integer, nullable=True)
 
 
 class DatabaseManager:
@@ -37,10 +39,9 @@ class DatabaseManager:
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
 
-    def add_recording(self, filename, source, meeting_name="", transcript=None, diarized_transcript=None, speakers=None, created_at=None):
+    def add_recording(self, filename, source, meeting_name="", transcript=None, diarized_transcript=None, speakers=None, created_at=None, duration=None, tldr=None):
         """Add a new recording to the database"""
         try:
-
             recording = Recording(
                 filename=filename,
                 source=source,
@@ -49,7 +50,9 @@ class DatabaseManager:
                 diarized_transcript=diarized_transcript,
                 speakers=speakers,
                 created_at=created_at if created_at is not None else datetime.now(
-                    timezone.utc)
+                    timezone.utc),
+                duration=duration,
+                tldr=tldr
             )
             self.session.add(recording)
             self.session.commit()
