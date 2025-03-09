@@ -40,7 +40,28 @@ async function handleDelete(recording) {
 async function downloadFile(url, filename) {
   try {
     const token = localStorage.getItem('authToken');
-    window.open(`${api.defaults.baseURL}${url}`);
+    const response = await fetch(`${api.defaults.baseURL}${url}`, {
+      headers: {
+        'x-token': token,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    // Create a blob from the response
+    const blob = await response.blob();
+
+    // Create a link and trigger download
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
   } catch (error) {
     console.error('Error downloading file:', error);
   }
