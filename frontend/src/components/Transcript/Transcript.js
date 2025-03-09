@@ -15,17 +15,26 @@ function TranscriptMessage({ message, speaker, color }) {
     });
   };
 
+  // Create a default speaker object for unknown speakers
+  const defaultSpeaker = {
+    name: 'Неопознанный ковбой',
+    profile_pic: 'https://i.pravatar.cc/150?img=65',
+  };
+
+  // Use the provided speaker info or fall back to default
+  const speakerInfo = speaker || defaultSpeaker;
+
   return (
     <div className={styles.messageContainer}>
       <img
-        src={speaker.profile_pic}
-        alt={speaker.name}
+        src={speakerInfo.profile_pic}
+        alt={speakerInfo.name}
         className={styles.avatar}
       />
       <div className={styles.messageContent}>
         <div className={styles.messageHeader}>
           <span className={styles.username} style={{ color }}>
-            {speaker.name}
+            {speakerInfo.name}
           </span>
           <span className={styles.timestamp}>
             {formatTime(message.start)}
@@ -42,14 +51,17 @@ function Transcript({ recording, root, title }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Create a map of speaker names to colors
+  // Update speakerColors to include 'unknown' speaker
   const speakerColors = useMemo(() => {
     if (!recordingData?.speakers) return {};
 
     const colors = {};
+    // First assign colors to known speakers
     Object.keys(recordingData.speakers).forEach((speaker, index) => {
       colors[speaker] = SPEAKER_COLORS[index % SPEAKER_COLORS.length];
     });
+    // Add a color for unknown speaker
+    colors['unknown'] = '#808080'; // Gray color for unknown speakers
     return colors;
   }, [recordingData?.speakers]);
 

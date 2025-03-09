@@ -14,117 +14,61 @@ class TranscriptionManager:
         openai.base_url = os.getenv(
             'OPENAI_BASE_URL', 'https://api.openai.com/v1')
         self.client = openai.Client()
-        self.SPEAKER_TIMESTAMP_OFFSET = timedelta(
-            seconds=2)
 
-    def get_active_speaker(self, query_time, events, fallback="unknown"):
+    def diarize_transcription(self, transcription, speaker_timestamps, recording_launch_time):
         """
-        Returns the last non-empty speaker from events whose time is <= query_time.
-        If none is found, returns fallback.
+        Diarizes transcription using the diarization module.
+
+        Args:
+            transcription: Whisper transcription output
+            speaker_timestamps: List of speaker events with timestamps and speakers
+            recording_launch_time: ISO format timestamp when recording began
+
+        Returns:
+            List of diarized segments with speaker, text, start and end times in ISO format
         """
-        active = None
-        for e in events:
-            if e['time'] <= query_time:
-                if e['speakers']:
-                    active = e['speakers'][0]
-            else:
-                break
-        return active if active else fallback
+        import diarization
 
-    def split_into_sentences(self, text):
-        """
-        Splits text into sentences based on ending punctuation.
-        This simple regex assumes that a sentence ends with period, exclamation, or question mark
-        followed by at least one whitespace character.
-        """
-        sentences = re.split(r'(?<=[.!?])\s+', text.strip())
-        return [s for s in sentences if s]
+        if not speaker_timestamps:
+            raise ValueError("No speaker timestamps provided")
 
-    def diarize_transcription(self, transcription, speaker_timestamps):
-        """
-        Diarizes transcription by splitting each Whisper segment into full sentences (so sentences never get cut off).
-        Each sentence is assigned an approximate absolute start/end time computed using proportional allocation 
-        (assuming a constant speech rate within the segment). The speaker is determined by checking the active
-        speaker at the sentence's midpoint using speaker_timestamps (ignoring empty events).
+        # Ensure recording_launch_time is in ISO format string
+        if isinstance(recording_launch_time, datetime):
+            recording_launch_time = recording_launch_time.isoformat()
 
-        Consecutive sentences for the same speaker are merged when the gap is small.
-        """
-        # Build a list of valid speaker events (only those with non-empty speakers)
-        events = [
-            {'time': datetime.fromisoformat(evt['timestamp']) - self.SPEAKER_TIMESTAMP_OFFSET,
-             'speakers': evt['speakers']}
-            for evt in speaker_timestamps if evt['speakers']
-        ]
-        events.sort(key=lambda x: x['time'])
+        # Format speaker timestamps if needed
+        formatted_timestamps = []
+        for event in speaker_timestamps:
+            # Ensure timestamp is in ISO format
+            if isinstance(event['timestamp'], datetime):
+                event['timestamp'] = event['timestamp'].isoformat()
+            formatted_timestamps.append(event)
 
-        if events:
-            base_time = events[0]['time']
-        else:
-            raise ValueError(
-                "No valid speaker timestamps found to derive base time")
+        # Use the diarization module to process the transcription
+        diarized_segments = diarization.diarize_transcript(
+            whisper_output=transcription,
+            slack_data=formatted_timestamps,
+            recording_start=recording_launch_time,
+            speaker_offset=-2.2,
+            duration_ratio=1.5
+        )
 
-        diarized_segments = []
+        # Convert the segment times to ISO format timestamps
+        base_time = datetime.fromisoformat(recording_launch_time)
+        formatted_segments = []
 
-        # Process each Whisper segment
-        for seg in transcription['segments']:
-            # Compute the absolute start and end times using base_time.
-            seg_abs_start = base_time + timedelta(seconds=seg['start'])
-            seg_abs_end = base_time + timedelta(seconds=seg['end'])
-            seg_duration = (seg_abs_end - seg_abs_start).total_seconds()
-            seg_text = seg['text'].strip()
-            if not seg_text:
-                continue
+        for segment in diarized_segments:
+            start_time = base_time + timedelta(seconds=segment['start'])
+            end_time = base_time + timedelta(seconds=segment['end'])
 
-            # Split the segment into full sentences so that sentences never get cut in half.
-            sentences = self.split_into_sentences(seg_text)
-            if not sentences:
-                sentences = [seg_text]
+            formatted_segments.append({
+                'speaker': segment['speaker'] or 'unknown',
+                'text': segment['text'],
+                'start': start_time.isoformat(),
+                'end': end_time.isoformat()
+            })
 
-            # Compute the total characters to proportionally allocate times.
-            total_chars = sum(len(s) for s in sentences)
-            cumulative_chars = 0
-
-            for sentence in sentences:
-                # Allocate absolute times based on the proportion of text.
-                sentence_start = seg_abs_start + \
-                    timedelta(seconds=(cumulative_chars /
-                                       total_chars) * seg_duration)
-                cumulative_chars += len(sentence)
-                sentence_end = seg_abs_start + \
-                    timedelta(seconds=(cumulative_chars /
-                                       total_chars) * seg_duration)
-                mid_time = sentence_start + (sentence_end - sentence_start) / 2
-
-                # Determine active speaker at the sentence midpoint.
-                speaker = self.get_active_speaker(mid_time, events)
-
-                diarized_segments.append({
-                    "speaker": speaker,
-                    "text": sentence,
-                    "start": sentence_start.isoformat(),
-                    "end": sentence_end.isoformat()
-                })
-
-        # Merge consecutive segments with the same speaker if the gap is negligible.
-        merged_segments = []
-        merge_gap_threshold = 0.5  # seconds; adjust as needed
-
-        for seg in diarized_segments:
-            if not merged_segments:
-                merged_segments.append(seg)
-            else:
-                last_seg = merged_segments[-1]
-                last_end = datetime.fromisoformat(last_seg['end'])
-                curr_start = datetime.fromisoformat(seg['start'])
-                gap = (curr_start - last_end).total_seconds()
-                if seg['speaker'] == last_seg['speaker'] and gap < merge_gap_threshold:
-                    # Merge the segments by extending the end time and combining text.
-                    last_seg['end'] = seg['end']
-                    last_seg['text'] = last_seg['text'] + " " + seg['text']
-                else:
-                    merged_segments.append(seg)
-
-        return merged_segments
+        return formatted_segments
 
     def generate_tldr(self, transcript_text):
         """Generate a TLDR summary for the transcript using GPT-4"""
@@ -146,7 +90,7 @@ Transcript:
             logger.error(f"Error generating TLDR: {str(e)}")
             return None
 
-    def transcribe_audio(self, audio_path, speaker_timestamps=None):
+    def transcribe_audio(self, audio_path, speaker_timestamps=None, recording_launch_time=None):
         try:
             logger.info(f"Starting transcription for: {audio_path}")
 
@@ -226,7 +170,8 @@ Transcript:
                 }
                 logger.info(
                     "Transcription of all chunks completed successfully")
-                logger.info(f"Final transcription JSON: {final_json}")
+                logger.info(
+                    f"Final transcription JSON: {json.dumps(final_json)}")
                 transcript_json = final_json
 
             # Extract text and create diarized version if speaker timestamps provided
@@ -235,7 +180,7 @@ Transcript:
             if speaker_timestamps:
                 try:
                     diarized_segments = self.diarize_transcription(
-                        transcript_json, speaker_timestamps)
+                        transcript_json, speaker_timestamps, recording_launch_time)
                 except Exception as e:
                     logger.error(f"Error during diarization: {str(e)}")
 
