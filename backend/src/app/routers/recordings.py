@@ -37,7 +37,11 @@ def get_recording(
 
 
 @router.get("/{recording_id}/audio")
-def get_recording_audio(recording_id: int, db: Session = Depends(get_db)):
+def get_recording_audio(
+    recording_id: int,
+    db: Session = Depends(get_db),
+    token: str = Depends(verify_token)
+):
     recording = crud.get_recording(db, recording_id=recording_id)
     if recording is None:
         raise HTTPException(status_code=404, detail="Recording not found")
@@ -54,7 +58,11 @@ def get_recording_audio(recording_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{recording_id}/transcript")
-def get_recording_transcript(recording_id: int, db: Session = Depends(get_db)):
+def get_recording_transcript(
+    recording_id: int,
+    db: Session = Depends(get_db),
+    token: str = Depends(verify_token)
+):
     recording = crud.get_recording(db, recording_id=recording_id)
     if recording is None:
         raise HTTPException(status_code=404, detail="Recording not found")

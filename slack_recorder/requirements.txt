@@ -1,6 +1,6 @@
 python-dotenv==1.0.0
-selenium==4.16.0
-slack-sdk==3.26.1
+selenium>=4.16.0
+slack-sdk>=3.26.1
 pyaudio==0.2.14
 soundfile==0.12.1
 psutil==5.9.7

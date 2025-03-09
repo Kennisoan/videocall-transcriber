@@ -489,7 +489,8 @@ class SlackHuddleRecorder:
                     # Transcribe the audio
                     transcript = self.transcription_manager.transcribe_audio(
                         self.current_recording_filename,
-                        self.speaker_records
+                        self.speaker_records,
+                        self.recording_launch_time
                     )
 
                     # Add to database including duration and tldr
