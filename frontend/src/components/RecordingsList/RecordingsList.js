@@ -12,6 +12,7 @@ import SlackRecordingCard from '../SlackRecordingCard';
 import Container from '../Container';
 import Header from '../Header';
 import RecordCallModal from '../RecordCallModal/RecordCallModal';
+import WhatsNew from '../WhatsNew';
 import { Plus, Loader, ChevronDown } from 'react-feather';
 import { fetcher } from '../../api/client';
 import styles from './RecordingsList.module.css';
@@ -115,6 +116,7 @@ function RecordingsList({ state }) {
         Записи звонков
       </Header>
       <div className={styles.recordings}>
+        <WhatsNew />
         {sortedRecordings.length === 0 ? (
           <div className={styles.placeholder}>
             Нет записей звонков.
