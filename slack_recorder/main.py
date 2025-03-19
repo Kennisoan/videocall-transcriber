@@ -15,7 +15,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import threading
 from datetime import datetime, timezone
 from database import DatabaseManager
-from transcription import TranscriptionManager
+from transcription import transcribe_audio
 from audio import AudioSystem
 from selenium.common.exceptions import StaleElementReferenceException
 
@@ -54,7 +54,6 @@ class SlackHuddleRecorder:
 
         # Initialize managers
         self.db_manager = DatabaseManager()
-        self.transcription_manager = TranscriptionManager()
         self.audio_system = None
 
         # Create directories
@@ -412,9 +411,25 @@ class SlackHuddleRecorder:
                         continue
 
                     except Exception as e:
-                        logger.info(f"Huddle ended or disconnected: {str(e)}")
-                        self.stop_recording()
-                        break
+                        try:
+                            # Check if screensharing is happening
+                            self.driver.find_element(
+                                By.CSS_SELECTOR, '[data-qa="free-willy-video-element"]')
+                            # Remove active speakers
+                            if previous_speakers != []:
+                                timestamp = datetime.now(
+                                    timezone.utc).isoformat()
+                                self.speaker_records.append({
+                                    "timestamp": timestamp,
+                                    "speakers": []
+                                })
+                                previous_speakers = []
+                            continue
+                        except:
+                            logger.info(
+                                "Huddle ended or disconnected: %s", str(e))
+                            self.stop_recording()
+                            break
 
                 # When recording stops, print out the speaker log to the console
                 logger.info("Speaker activity log: %s", self.speaker_records)
@@ -487,7 +502,7 @@ class SlackHuddleRecorder:
             if hasattr(self, 'current_recording_filename'):
                 try:
                     # Transcribe the audio
-                    transcript = self.transcription_manager.transcribe_audio(
+                    transcript = transcribe_audio(
                         self.current_recording_filename,
                         self.speaker_records,
                         self.recording_launch_time
@@ -499,31 +514,15 @@ class SlackHuddleRecorder:
                             self.current_recording_filename),
                         source="slack",
                         meeting_name=self.current_huddle_name,
-                        transcript=transcript["text"],
-                        diarized_transcript=transcript["diarized"],
+                        transcript=transcript.get("text"),
+                        diarized_transcript=transcript.get("diarized"),
                         created_at=self.recording_launch_time,
                         speakers=self._get_speaker_summary(),
                         duration=duration,
-                        tldr=transcript["tldr"]
+                        tldr=transcript.get("tldr")
                     )
                 except Exception as e:
                     logger.error(f"Failed to process recording: {str(e)}")
-                    # Still try to save the recording without transcript
-                    try:
-                        self.db_manager.add_recording(
-                            filename=os.path.basename(
-                                self.current_recording_filename),
-                            source="slack",
-                            meeting_name=self.current_huddle_name,
-                            transcript=transcript.get("text"),
-                            created_at=self.recording_launch_time,
-                            speakers=self._get_speaker_summary(),
-                            duration=duration,
-                            tldr=transcript.get("tldr")
-                        )
-                    except Exception as db_error:
-                        logger.error(
-                            f"Failed to add recording to database: {str(db_error)}")
 
             self.current_huddle_name = ""
 

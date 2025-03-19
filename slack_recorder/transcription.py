@@ -1,200 +1,331 @@
-import re
-import json
+import requests
 import os
-import logging
-from datetime import datetime, timedelta
-import openai
+import json
+from pathlib import Path
+from collections import defaultdict
+import dateutil.parser
+import datetime
+from statistics import mode
+from itertools import groupby
+from tldr_generator import generate_tldr
 
-logger = logging.getLogger(__name__)
+# Minimum utterance length in seconds to consider for speaker identification
+MIN_UTTERANCE_LENGTH = 1.0
+# Minimum time gap in seconds to consider as a real speaker change
+MIN_SPEAKER_CHANGE_GAP = 0.5
 
 
-class TranscriptionManager:
-    def __init__(self):
-        openai.api_key = os.getenv('OPENAI_API_KEY')
-        openai.base_url = os.getenv(
-            'OPENAI_BASE_URL', 'https://api.openai.com/v1')
-        self.client = openai.Client()
+def transcribe_audio(audio_path, speaker_timestamps=None, recording_launch_time=None, api_key=None):
+    """
+    Transcribe audio using ElevenLabs API and perform diarization if speaker timestamps are provided.
 
-    def diarize_transcription(self, transcription, speaker_timestamps, recording_launch_time):
-        """
-        Diarizes transcription using the diarization module.
+    Args:
+        audio_path (str): Path to the audio file
+        speaker_timestamps (list, optional): List of speaker activity timestamps in the format:
+            [{"timestamp": "2025-03-07T08:59:40.530190+00:00", "speakers": ["Speaker Name"]}, ...]
+        recording_launch_time (datetime, optional): Start time of the recording as a datetime object
+        api_key (str, optional): ElevenLabs API key
 
-        Args:
-            transcription: Whisper transcription output
-            speaker_timestamps: List of speaker events with timestamps and speakers
-            recording_launch_time: ISO format timestamp when recording began
+    Returns:
+        dict: Dictionary with "text" field containing the raw transcript, "diarized" field
+            containing the diarized transcript, and "tldr" field containing a short summary in Russian
+    """
+    # Validate input
+    if not os.path.exists(audio_path):
+        raise FileNotFoundError(f"Audio file not found: {audio_path}")
 
-        Returns:
-            List of diarized segments with speaker, text, start and end times in ISO format
-        """
-        import diarization
+    if api_key is None:
+        try:
+            api_key = os.getenv('ELEVENLABS_API_KEY')
+        except ImportError:
+            raise ValueError(
+                "ElevenLabs API key not provided and could not be imported from config")
 
-        if not speaker_timestamps:
-            raise ValueError("No speaker timestamps provided")
+    # Step 1: Transcribe the audio using ElevenLabs API
+    transcription = _transcribe_audio_elevenlabs(audio_path, api_key)
 
-        # Ensure recording_launch_time is in ISO format string
-        if isinstance(recording_launch_time, datetime):
-            recording_launch_time = recording_launch_time.isoformat()
+    if not transcription:
+        return {"text": "", "diarized": [], "tldr": ""}
 
-        # Format speaker timestamps if needed
-        formatted_timestamps = []
-        for event in speaker_timestamps:
-            # Ensure timestamp is in ISO format
-            if isinstance(event['timestamp'], datetime):
-                event['timestamp'] = event['timestamp'].isoformat()
-            formatted_timestamps.append(event)
+    # Extract raw text
+    raw_text = transcription.get('text', '')
 
-        # Use the diarization module to process the transcription
-        diarized_segments = diarization.diarize_transcript(
-            whisper_output=transcription,
-            slack_data=formatted_timestamps,
-            recording_start=recording_launch_time,
-            speaker_offset=-2.2,
-            duration_ratio=1.5
-        )
+    # If no speaker timestamps or recording time provided, return only the raw text
+    if not speaker_timestamps or not recording_launch_time:
+        return {"text": raw_text, "diarized": [], "tldr": ""}
 
-        # Convert the segment times to ISO format timestamps
-        base_time = datetime.fromisoformat(recording_launch_time)
-        formatted_segments = []
+    # Convert recording_launch_time to string format if it's a datetime object
+    if isinstance(recording_launch_time, datetime.datetime):
+        recording_launch_time = recording_launch_time.isoformat()
 
-        for segment in diarized_segments:
-            start_time = base_time + timedelta(seconds=segment['start'])
-            end_time = base_time + timedelta(seconds=segment['end'])
+    # Step 2: Process the transcript with speaker information
+    # Create speaker mapping
+    speaker_map = create_improved_speaker_map(
+        transcription, speaker_timestamps, recording_launch_time)
 
-            formatted_segments.append({
-                'speaker': segment['speaker'] or 'unknown',
-                'text': segment['text'],
-                'start': start_time.isoformat(),
-                'end': end_time.isoformat()
+    # Generate diarized transcript
+    timestamped_transcript = generate_timestamped_transcript(
+        transcription, speaker_map, recording_launch_time)
+
+    # Transform to required output format
+    diarized_output = []
+    for entry in timestamped_transcript:
+        diarized_output.append({
+            "speaker": entry["speaker"],
+            "text": entry["text"],
+            "start": entry["absolute_start"],
+            "end": entry["absolute_end"]
+        })
+
+    # Create the response dictionary
+    result = {
+        "text": raw_text,
+        "diarized": diarized_output
+    }
+
+    # Generate TLDR summary in Russian
+    try:
+        tldr = generate_tldr(result)
+        result["tldr"] = tldr
+    except Exception as e:
+        print(f"Error generating TLDR: {e}")
+
+    return result
+
+
+def _transcribe_audio_elevenlabs(file_path, api_key):
+    """Transcribe an audio file using ElevenLabs API."""
+    url = "https://api.elevenlabs.io/v1/speech-to-text"
+
+    headers = {
+        "xi-api-key": api_key
+    }
+
+    # Currently, only 'scribe_v1' is available as per the documentation
+    model_id = "scribe_v1"
+
+    # Prepare the form data
+    files = {"file": (os.path.basename(file_path), open(file_path, "rb"))}
+    data = {
+        "model_id": model_id,
+        "diarize": True,
+        "language_code": "rus",
+        "timestamps_granularity": "word"
+    }
+
+    print(
+        f"Uploading {file_path} for transcription with diarization enabled...")
+
+    try:
+        response = requests.post(url, headers=headers, files=files, data=data)
+        response.raise_for_status()  # Raise an exception for 4XX/5XX responses
+
+        transcription = response.json()
+        return transcription
+    except requests.exceptions.RequestException as e:
+        print(f"Error during API request: {e}")
+        if hasattr(e, 'response') and e.response is not None:
+            print(f"Response status code: {e.response.status_code}")
+            print(f"Response content: {e.response.text}")
+        return None
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+
+
+def find_speaker_at_time(speaker_activity, time_point):
+    """Find the active speaker at a given time point."""
+    # Sort activity by timestamp
+    sorted_activity = sorted(speaker_activity,
+                             key=lambda x: dateutil.parser.parse(x["timestamp"]))
+
+    # Find the last activity entry before the given time point
+    current_speaker = None
+    for activity in sorted_activity:
+        activity_time = dateutil.parser.parse(activity["timestamp"])
+        if activity_time <= time_point:
+            current_speaker = activity["speakers"][0] if activity["speakers"] else None
+        else:
+            break
+
+    return current_speaker
+
+
+def extract_speaker_segments(transcript):
+    """Extract segments where each ElevenLabs speaker_id speaks continuously."""
+    segments = []
+    current_segment = None
+
+    for word in transcript.get("words", []):
+        if word.get("type") != "word":
+            continue
+
+        speaker_id = word.get("speaker_id")
+        if not speaker_id:
+            continue
+
+        start_time = word.get("start", 0)
+        end_time = word.get("end", start_time)
+
+        # If this is a new speaker or there's a long pause, start a new segment
+        if (not current_segment or
+            current_segment["speaker_id"] != speaker_id or
+                start_time - current_segment["end_time"] > MIN_SPEAKER_CHANGE_GAP):
+
+            if current_segment and current_segment["end_time"] - current_segment["start_time"] >= MIN_UTTERANCE_LENGTH:
+                segments.append(current_segment)
+
+            current_segment = {
+                "speaker_id": speaker_id,
+                "start_time": start_time,
+                "end_time": end_time,
+                "words": [word.get("text", "")]
+            }
+        else:
+            # Continue the current segment
+            current_segment["end_time"] = end_time
+            current_segment["words"].append(word.get("text", ""))
+
+    # Add the last segment
+    if current_segment and current_segment["end_time"] - current_segment["start_time"] >= MIN_UTTERANCE_LENGTH:
+        segments.append(current_segment)
+
+    return segments
+
+
+def create_improved_speaker_map(transcript, speaker_activity, recording_start_time):
+    """Create a more robust mapping between speaker_ids and actual speakers."""
+    reference_time = dateutil.parser.parse(recording_start_time)
+
+    # Extract continuous speech segments by speaker_id
+    segments = extract_speaker_segments(transcript)
+
+    # Count which real speaker was active during each segment
+    speaker_votes = defaultdict(lambda: defaultdict(int))
+
+    for segment in segments:
+        # Sample multiple points within the segment to find who was speaking
+        segment_duration = segment["end_time"] - segment["start_time"]
+        # Sample at least 3 points or every 0.5 seconds
+        num_samples = max(3, int(segment_duration / 0.5))
+
+        for i in range(num_samples):
+            sample_time_seconds = segment["start_time"] + \
+                (segment_duration * i / (num_samples - 1))
+            sample_time = reference_time + \
+                datetime.timedelta(seconds=sample_time_seconds)
+
+            # Find who was active at this time
+            active_speaker = find_speaker_at_time(
+                speaker_activity, sample_time)
+            if active_speaker:
+                speaker_votes[segment["speaker_id"]][active_speaker] += 1
+
+    # For each ElevenLabs speaker_id, find the most frequently active real speaker
+    speaker_map = {}
+    for speaker_id, votes in speaker_votes.items():
+        if votes:
+            # Find the real speaker with the most votes
+            speaker_map[speaker_id] = max(votes.items(), key=lambda x: x[1])[0]
+
+    # Debug output
+    print("Speaker votes distribution:")
+    for speaker_id, votes in speaker_votes.items():
+        print(f"  Speaker ID '{speaker_id}' votes: {dict(votes)}")
+
+    return speaker_map
+
+
+def consolidate_speaker_turns(transcript_with_speakers, min_gap=1.0):
+    """Consolidate speaker turns to avoid unrealistic rapid speaker changes."""
+    if not transcript_with_speakers:
+        return []
+
+    consolidated = []
+    current_group = transcript_with_speakers[0].copy()
+
+    for entry in transcript_with_speakers[1:]:
+        # If same speaker and small time gap, merge
+        if (entry["speaker"] == current_group["speaker"] and
+                entry["start_time"] - current_group["end_time"] < min_gap):
+            current_group["text"] += " " + entry["text"]
+            current_group["end_time"] = entry["end_time"]
+            current_group["absolute_end"] = entry["absolute_end"]
+        else:
+            # Add the completed group and start a new one
+            consolidated.append(current_group)
+            current_group = entry.copy()
+
+    # Add the last group
+    consolidated.append(current_group)
+
+    return consolidated
+
+
+def generate_timestamped_transcript(transcript, speaker_map, recording_start_time):
+    """Generate a timestamped transcript with speaker information."""
+    result = []
+    reference_time = dateutil.parser.parse(recording_start_time)
+
+    current_speaker = None
+    current_text = []
+    start_time = None
+
+    for word in transcript.get("words", []):
+        if word.get("type") != "word":
+            continue
+
+        speaker_id = word.get("speaker_id")
+        speaker_name = speaker_map.get(
+            speaker_id, f"Unknown Speaker ({speaker_id})")
+
+        # If start time is not set, set it (for the first word)
+        if start_time is None:
+            start_time = word.get("start", 0)
+
+        # If speaker changed, add the previous utterance to the result
+        if speaker_name != current_speaker and current_text:
+            end_time = word.get("start", 0)
+            absolute_start = reference_time + \
+                datetime.timedelta(seconds=start_time)
+            absolute_end = reference_time + \
+                datetime.timedelta(seconds=end_time)
+
+            result.append({
+                "speaker": current_speaker,
+                "text": " ".join(current_text),
+                "start_time": start_time,
+                "end_time": end_time,
+                "absolute_start": absolute_start.isoformat(),
+                "absolute_end": absolute_end.isoformat()
             })
 
-        return formatted_segments
+            # Reset for new speaker
+            current_text = []
+            start_time = word.get("start", 0)
 
-    def generate_tldr(self, transcript_text):
-        """Generate a TLDR summary for the transcript using GPT-4"""
-        try:
-            prompt = """Our Slack calls are recorded and transcribed for later use, but it's hard to find a needed call in our system. Our solution — provide every recording a short field called "what's this call about". The idea is to have very short (7 words per topic max) but precise overview of a call, for example "Конфигурация SSL для  проекта по записи звноков, ...", where the topics are listed with commas. Your task is to provide a "what's this call about" filed for the call below. Only return the text of the field and nothing else. Your answer must be in Russian.
+        # Add word to current utterance
+        current_text.append(word.get("text", ""))
+        current_speaker = speaker_name
 
-Transcript:
-{}""".format(transcript_text)
+    # Add the last utterance
+    if current_text and current_speaker:
+        end_time = transcript["words"][-1].get("end",
+                                               0) if transcript.get("words") else 0
+        absolute_start = reference_time + \
+            datetime.timedelta(seconds=start_time)
+        absolute_end = reference_time + datetime.timedelta(seconds=end_time)
 
-            response = self.client.chat.completions.create(
-                model="gpt-4",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.7,
-                max_tokens=75
-            )
+        result.append({
+            "speaker": current_speaker,
+            "text": " ".join(current_text),
+            "start_time": start_time,
+            "end_time": end_time,
+            "absolute_start": absolute_start.isoformat(),
+            "absolute_end": absolute_end.isoformat()
+        })
 
-            return response.choices[0].message.content.strip()
-        except Exception as e:
-            logger.error(f"Error generating TLDR: {str(e)}")
-            return None
+    # Consolidate speaker turns to avoid unrealistic rapid changes
+    result = consolidate_speaker_turns(result)
 
-    def transcribe_audio(self, audio_path, speaker_timestamps=None, recording_launch_time=None):
-        try:
-            logger.info(f"Starting transcription for: {audio_path}")
-
-            from pydub import AudioSegment
-            file_data = open(audio_path, "rb")
-            file_size = os.path.getsize(audio_path)
-            audio_for_split = AudioSegment.from_file(audio_path)
-
-            MAX_SIZE = 26214400  # Maximum allowed file size in bytes
-
-            if file_size <= MAX_SIZE:
-                # Direct transcription without splitting
-                response = self.client.audio.transcriptions.create(
-                    model="whisper-1",
-                    file=file_data,
-                    response_format="verbose_json",
-                    timestamp_granularities=["segment"]
-                )
-                transcript_json = response.model_dump()
-                logger.info("Transcription completed successfully")
-            else:
-                # If file is too large, split compressed audio into chunks for transcription
-                # Total duration in milliseconds
-                duration_ms = len(audio_for_split)
-
-                # Calculate allowed duration for each chunk (in ms) based on average bytes per ms
-                allowed_duration_ms = int(duration_ms * MAX_SIZE / file_size)
-                if allowed_duration_ms <= 0:
-                    allowed_duration_ms = 10000
-
-                num_chunks = (duration_ms // allowed_duration_ms) + \
-                    (1 if duration_ms % allowed_duration_ms > 0 else 0)
-                logger.info(
-                    f"File size ({file_size} bytes) exceeds limit, splitting into {num_chunks} chunks for transcription")
-
-                merged_segments = []
-                merged_text = ""
-
-                for i in range(num_chunks):
-                    start_ms = i * allowed_duration_ms
-                    end_ms = min((i + 1) * allowed_duration_ms, duration_ms)
-                    chunk_audio = audio_for_split[start_ms:end_ms]
-                    from io import BytesIO
-                    chunk_io = BytesIO()
-                    # Export chunk with the same compression settings to mp3
-                    chunk_audio.export(chunk_io, format="mp3", bitrate="64k")
-                    chunk_io.seek(0)
-                    # Provide a name for the API to detect the file type
-                    chunk_io.name = f"chunk_{i}.mp3"
-
-                    logger.info(
-                        f"Transcribing chunk {i + 1}/{num_chunks} from {start_ms}ms to {end_ms}ms")
-                    chunk_response = self.client.audio.transcriptions.create(
-                        model="whisper-1",
-                        file=chunk_io,
-                        response_format="verbose_json",
-                        timestamp_granularities=["segment"]
-                    )
-                    chunk_json = chunk_response.model_dump()
-
-                    # Adjust segment timestamps relative to the overall audio
-                    chunk_offset = start_ms / 1000.0
-                    if "segments" in chunk_json:
-                        for segment in chunk_json["segments"]:
-                            if "start" in segment:
-                                segment["start"] += chunk_offset
-                            if "end" in segment:
-                                segment["end"] += chunk_offset
-                        merged_segments.extend(chunk_json["segments"])
-                    if "text" in chunk_json:
-                        merged_text = (merged_text + " " +
-                                       chunk_json["text"]).strip()
-
-                final_json = {
-                    "text": merged_text,
-                    "segments": merged_segments
-                }
-                logger.info(
-                    "Transcription of all chunks completed successfully")
-                logger.info(
-                    f"Final transcription JSON: {json.dumps(final_json)}")
-                transcript_json = final_json
-
-            # Extract text and create diarized version if speaker timestamps provided
-            transcription_text = transcript_json.get('text', '')
-            diarized_segments = None
-            if speaker_timestamps:
-                try:
-                    diarized_segments = self.diarize_transcription(
-                        transcript_json, speaker_timestamps, recording_launch_time)
-                except Exception as e:
-                    logger.error(f"Error during diarization: {str(e)}")
-
-            # Generate TLDR after successful transcription
-            tldr = None
-            if transcription_text:
-                tldr = self.generate_tldr(transcription_text)
-
-            return {
-                'text': transcription_text,
-                'diarized': diarized_segments,
-                'tldr': tldr
-            }
-
-        except Exception as e:
-            logger.error(f"Error during transcription: {str(e)}")
-            return None
+    return result
