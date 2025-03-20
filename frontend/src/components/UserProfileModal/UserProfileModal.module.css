@@ -1,0 +1,258 @@
+.loaderContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  gap: 16px;
+  color: #666;
+  font-size: 14px;
+}
+
+.spinner {
+  animation: spin 1.2s linear infinite;
+  color: #007aff;
+}
+
+.buttonSpinner {
+  animation: spin 1.2s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.profileSection {
+  margin-bottom: 24px;
+  padding: 4px 0;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.userIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #5e7ce2, #007aff);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2);
+  flex-shrink: 0;
+}
+
+.userDetails {
+  display: flex;
+  flex-direction: column;
+}
+
+.usernameRow {
+  line-height: 1;
+}
+
+.username {
+  font-size: 18px;
+  font-weight: 600;
+  color: #000;
+  margin: 0;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.userFullName {
+  font-size: 15px;
+  color: #666;
+  margin: 0;
+}
+
+.nameForm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.nameForm input {
+  font-size: 15px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #e1e1e1;
+  background-color: #f5f5f7;
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+.nameForm input:focus {
+  outline: none;
+  border-color: #007aff;
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+}
+
+.editButton,
+.saveButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  color: #007aff;
+  transition: all 0.2s ease;
+}
+
+.editButton:hover,
+.saveButton:hover {
+  background-color: rgba(0, 122, 255, 0.1);
+}
+
+.editButton:active,
+.saveButton:active {
+  background-color: rgba(0, 122, 255, 0.2);
+  transform: scale(0.96);
+}
+
+.error,
+.success {
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.error {
+  background-color: rgba(255, 59, 48, 0.1);
+  color: #ff3b30;
+}
+
+.success {
+  background-color: rgba(52, 199, 89, 0.1);
+  color: #34c759;
+}
+
+.section {
+  margin-bottom: 24px;
+  animation: fadeIn 0.3s ease-out;
+  animation-delay: 0.05s;
+  opacity: 0;
+  animation-fill-mode: forwards;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #000;
+  margin: 0 0 16px;
+}
+
+.permissionsList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.permissionItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background-color: #f5f5f7;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.permissionItem:hover {
+  background-color: #eeeef0;
+}
+
+.hashIcon {
+  color: #007aff;
+}
+
+.groupName {
+  flex: 1;
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.editBadge {
+  font-size: 12px;
+  padding: 3px 8px;
+  background-color: rgba(0, 122, 255, 0.1);
+  color: #007aff;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.noPermissions {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.5;
+  background-color: #f5f5f7;
+  padding: 16px;
+  border-radius: 10px;
+  border-left: 4px solid #007aff;
+}
+
+.actionSection {
+  animation: fadeIn 0.3s ease-out;
+  animation-delay: 0.1s;
+  opacity: 0;
+  animation-fill-mode: forwards;
+}
+
+.logoutButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  background-color: #f5f5f7;
+  color: #ff3b30;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.logoutButton:hover {
+  background-color: rgba(255, 59, 48, 0.1);
+}
+
+.logoutButton:active {
+  transform: scale(0.98);
+}
