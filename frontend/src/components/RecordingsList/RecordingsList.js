@@ -13,7 +13,8 @@ import Container from '../Container';
 import Header from '../Header';
 import RecordCallModal from '../RecordCallModal/RecordCallModal';
 import WhatsNew from '../WhatsNew';
-import { Plus, Loader, ChevronDown } from 'react-feather';
+import UserProfileModal from '../UserProfileModal';
+import { Plus, Loader, ChevronDown, User } from 'react-feather';
 import { fetcher } from '../../api/client';
 import styles from './RecordingsList.module.css';
 
@@ -42,6 +43,10 @@ function RecordingsList({ state }) {
   const { data: recordings, error } = useSWR('/recordings', fetcher, {
     refreshInterval: 10000,
   });
+
+  // Fetch user permissions to provide better feedback
+  const { data: myPermissions } = useSWR('/permissions/my', fetcher);
+  const { data: userData } = useSWR('/users/me', fetcher);
 
   const categorizeRecordings = (recordings) => {
     const categories = {
@@ -102,15 +107,29 @@ function RecordingsList({ state }) {
     <Container className={styles.wrapper}>
       <Header
         trailing={
-          <RecordCallModal
-            state={state}
-            root={
-              <button className={styles.newRecordingButton}>
-                <Plus size={14} strokeWidth={2.3} />
-                Записать звонок
-              </button>
-            }
-          />
+          <div className={styles.headerControls}>
+            <UserProfileModal
+              root={
+                <button className={styles.profileButton}>
+                  <div className={styles.avatarCircle}>
+                    <User size={14} strokeWidth={2} />
+                  </div>
+                  {userData?.name
+                    ? userData.name
+                    : userData?.username || 'Профиль'}
+                </button>
+              }
+            />
+            <RecordCallModal
+              state={state}
+              root={
+                <button className={styles.newRecordingButton}>
+                  <Plus size={14} strokeWidth={2.3} />
+                  Записать звонок
+                </button>
+              }
+            />
+          </div>
         }
       >
         Записи звонков
@@ -119,7 +138,9 @@ function RecordingsList({ state }) {
         <WhatsNew />
         {sortedRecordings.length === 0 ? (
           <div className={styles.placeholder}>
-            Нет записей звонков.
+            {myPermissions && myPermissions.length === 0
+              ? 'У вас нет доступа к записям. Обратитесь к администратору для получения прав доступа.'
+              : 'Нет записей звонков.'}
           </div>
         ) : (
           <>
