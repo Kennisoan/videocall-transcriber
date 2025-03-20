@@ -1,1 +1,1 @@
-from . import recordings, recorder, auth
+from . import recordings, recorder, auth, users, permissions

@@ -4,8 +4,9 @@ from typing import List
 import os
 from fastapi.responses import FileResponse
 
-from ..dependencies import get_db, verify_token
+from ..dependencies import get_db, get_current_user_dependency
 from .. import crud, schemas
+from ..models import User
 
 router = APIRouter(
     prefix="/recordings",
@@ -18,9 +19,11 @@ def list_recordings(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    token: str = Depends(verify_token)
+    current_user: User = Depends(get_current_user_dependency)
 ):
-    recordings = crud.get_recordings(db, skip=skip, limit=limit)
+    # Get only recordings that the user has permission to access
+    recordings = crud.get_accessible_recordings(
+        db, current_user.id, skip=skip, limit=limit)
     return [schemas.RecordingList.from_orm(recording) for recording in recordings]
 
 
@@ -28,11 +31,17 @@ def list_recordings(
 def get_recording(
     recording_id: int,
     db: Session = Depends(get_db),
-    token: str = Depends(verify_token)
+    current_user: User = Depends(get_current_user_dependency)
 ):
+    # Check if user has access to this recording
+    if not crud.check_recording_access(db, current_user.id, recording_id):
+        raise HTTPException(
+            status_code=403, detail="Access denied to this recording")
+
     recording = crud.get_recording(db, recording_id=recording_id)
     if recording is None:
         raise HTTPException(status_code=404, detail="Recording not found")
+
     return schemas.Recording.from_orm(recording)
 
 
@@ -40,8 +49,13 @@ def get_recording(
 def get_recording_audio(
     recording_id: int,
     db: Session = Depends(get_db),
-    token: str = Depends(verify_token)
+    current_user: User = Depends(get_current_user_dependency)
 ):
+    # Check if user has access to this recording
+    if not crud.check_recording_access(db, current_user.id, recording_id):
+        raise HTTPException(
+            status_code=403, detail="Access denied to this recording")
+
     recording = crud.get_recording(db, recording_id=recording_id)
     if recording is None:
         raise HTTPException(status_code=404, detail="Recording not found")
@@ -61,8 +75,13 @@ def get_recording_audio(
 def get_recording_transcript(
     recording_id: int,
     db: Session = Depends(get_db),
-    token: str = Depends(verify_token)
+    current_user: User = Depends(get_current_user_dependency)
 ):
+    # Check if user has access to this recording
+    if not crud.check_recording_access(db, current_user.id, recording_id):
+        raise HTTPException(
+            status_code=403, detail="Access denied to this recording")
+
     recording = crud.get_recording(db, recording_id=recording_id)
     if recording is None:
         raise HTTPException(status_code=404, detail="Recording not found")
@@ -90,8 +109,13 @@ def get_recording_transcript(
 def delete_recording(
     recording_id: int,
     db: Session = Depends(get_db),
-    token: str = Depends(verify_token)
+    current_user: User = Depends(get_current_user_dependency)
 ):
+    # Check if user has access to this recording
+    if not crud.check_recording_access(db, current_user.id, recording_id):
+        raise HTTPException(
+            status_code=403, detail="Access denied to this recording")
+
     recording = crud.get_recording(db, recording_id=recording_id)
     if recording is None:
         raise HTTPException(status_code=404, detail="Recording not found")

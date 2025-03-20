@@ -1,14 +1,9 @@
-from fastapi import Header, HTTPException, Cookie
+from fastapi import Header, HTTPException, Cookie, Depends
+from fastapi.security import OAuth2PasswordBearer
 from typing import Optional
 from .database import SessionLocal
-
-
-def verify_token(x_token: Optional[str] = Header(None), authToken: Optional[str] = Cookie(None)):
-    from .routers.auth import AUTH_TOKEN
-    token = x_token or authToken
-    if not token or token != AUTH_TOKEN:
-        raise HTTPException(status_code=403, detail="Not authenticated")
-    return token
+from .auth import get_current_active_user
+from sqlalchemy.orm import Session
 
 
 def get_db():
@@ -17,3 +12,8 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+# Dependency that requires authentication
+def get_current_user_dependency(current_user=Depends(get_current_active_user)):
+    return current_user
