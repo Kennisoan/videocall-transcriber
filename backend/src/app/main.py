@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import Base, engine
-from .routers import recordings, recorder, auth
+from .routers import recordings, recorder, auth, users, permissions
 
 app = FastAPI()
 
@@ -30,3 +30,5 @@ def root():
 app.include_router(recordings.router)
 app.include_router(recorder.router)
 app.include_router(auth.router)
+app.include_router(users.router)
+app.include_router(permissions.router)

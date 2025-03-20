@@ -63,3 +63,70 @@ class RecordingList(BaseModel):
         json_encoders = {
             datetime: lambda v: v.isoformat() + 'Z'
         }
+
+
+class UserBase(BaseModel):
+    username: str
+    name: Optional[str] = None
+
+
+class UserCreate(UserBase):
+    password: str
+
+
+class User(UserBase):
+    id: int
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat() + 'Z'
+        }
+
+
+class UpdateUserName(BaseModel):
+    name: str
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class UserPermissionBase(BaseModel):
+    group_name: str
+    can_edit: bool = False
+
+
+class UserPermissionCreate(UserPermissionBase):
+    pass
+
+
+class UserPermission(UserPermissionBase):
+    id: int
+    user_id: int
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat() + 'Z'
+        }
+
+
+class UserWithPermissions(User):
+    permissions: List[UserPermission] = []
+
+    class Config:
+        orm_mode = True
