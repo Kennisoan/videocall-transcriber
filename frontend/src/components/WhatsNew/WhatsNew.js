@@ -3,15 +3,14 @@ import { Star } from 'react-feather';
 import styles from './WhatsNew.module.css';
 
 // Change this version number when adding new features
-const CURRENT_VERSION = '1.1.1';
+const CURRENT_VERSION = '1.2.0';
 const STORAGE_KEY = 'app_version';
 
 const WhatsNew = () => {
   const [isVisible, setIsVisible] = useState(false);
 
   const newFeatures = [
-    'Транскрибация звонков через ElevenLabs',
-    'Гораздо более качественное определение говорящего, с точностью до слова',
+    'Теперь можно создавать разные аккаунты с разными правами доступа',
   ];
 
   useEffect(() => {
