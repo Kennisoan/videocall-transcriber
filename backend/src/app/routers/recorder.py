@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException
-from ..dependencies import verify_token
 import requests
 import logging
 from pydantic import BaseModel
@@ -17,7 +16,7 @@ class MeetLinkRequest(BaseModel):
 
 
 @router.post("/start")
-def forward_recording_request(request: MeetLinkRequest, token: str = Depends(verify_token)):
+def forward_recording_request(request: MeetLinkRequest):
     recorder_api_url = "http://meet_recorder:8001/join"
     try:
         r = requests.post(recorder_api_url, json={
@@ -30,7 +29,7 @@ def forward_recording_request(request: MeetLinkRequest, token: str = Depends(ver
 
 
 @router.get("/state")
-def get_recorder_state(token: str = Depends(verify_token)):
+def get_recorder_state():
     recorder_api_url = "http://meet_recorder:8001/state"
     try:
         r = requests.get(recorder_api_url, timeout=5)
