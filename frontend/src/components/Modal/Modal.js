@@ -11,46 +11,67 @@ function Modal({
   footerClassName,
   onClose,
   onOpen,
+  isOpen: externalIsOpen,
+  className,
 }) {
-  const [isOpen, setIsOpen] = useState(false);
+  // Internal state for uncontrolled usage
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
 
-  const closeModal = () => {
-    setIsOpen(false);
-    onClose?.();
+  // Determine if we're in controlled or uncontrolled mode
+  const isControlled = externalIsOpen !== undefined;
+  const isOpen = isControlled ? externalIsOpen : internalIsOpen;
+
+  const handleClose = () => {
+    if (!isControlled) {
+      setInternalIsOpen(false);
+    }
+    if (onClose) {
+      onClose();
+    }
   };
 
-  const openModal = () => {
-    setIsOpen(true);
-    onOpen?.();
+  const handleOpen = () => {
+    if (!isControlled) {
+      setInternalIsOpen(true);
+    }
+    if (onOpen) {
+      onOpen();
+    }
   };
 
   return (
     <>
-      {cloneElement(root, { onClick: openModal })}
+      {root && cloneElement(root, { onClick: handleOpen })}
 
-      <Dialog open={isOpen} onClose={closeModal}>
+      <Dialog open={isOpen} onClose={handleClose}>
         <div className={styles.wrapper}>
-          <DialogPanel className={styles.panel}>
-            <div className={styles.header}>
-              <DialogTitle>{title}</DialogTitle>
-              <button className={styles.x} onClick={closeModal}>
-                <X size={18} />
-              </button>
-            </div>
+          <DialogPanel
+            className={`${styles.panel} ${className || ''}`}
+          >
+            {title && (
+              <div className={styles.header}>
+                <DialogTitle>{title}</DialogTitle>
+                <button className={styles.x} onClick={handleClose}>
+                  <X size={18} />
+                </button>
+              </div>
+            )}
 
             <div className={styles.body}>
               {children}
 
               {footer && (
                 <div
-                  className={`${styles.footer} ${footerClassName}`}
+                  className={`${styles.footer} ${
+                    footerClassName || ''
+                  }`}
                 >
                   {footer.map((element, index) =>
                     cloneElement(element, {
                       key: index,
                       onClick: (e) => {
                         element.props.onClick?.(e);
-                        closeModal();
+                        handleClose();
                       },
                     })
                   )}

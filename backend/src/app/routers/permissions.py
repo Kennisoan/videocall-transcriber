@@ -29,8 +29,10 @@ async def read_user_permissions(
     current_user: User = Depends(get_current_user_dependency)
 ):
     """Admin endpoint: Get all permissions for a specific user"""
-    # In a real application, you'd want to check if current_user is an admin
-    # For simplicity, we allow any authenticated user to access this endpoint for now
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=403, detail="Only admins can access this endpoint")
+
     permissions = crud.get_user_permissions(db, user_id)
     return permissions
 
@@ -43,13 +45,20 @@ async def create_permission(
     current_user: User = Depends(get_current_user_dependency)
 ):
     """Admin endpoint: Create a new permission for a user"""
-    # In a real application, you'd want to check if current_user is an admin
-    # For simplicity, we allow any authenticated user to access this endpoint for now
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=403, detail="Only admins can access this endpoint")
 
     # Check if user exists
     user = crud.get_user(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    # Check if permission already exists
+    if crud.user_has_permission_for_group(db, user_id, permission.group_name):
+        raise HTTPException(
+            status_code=400,
+            detail=f"User already has permission for group '{permission.group_name}'")
 
     return crud.create_user_permission(db, permission, user_id)
 
@@ -62,8 +71,9 @@ async def update_permission(
     current_user: User = Depends(get_current_user_dependency)
 ):
     """Admin endpoint: Update a permission"""
-    # In a real application, you'd want to check if current_user is an admin
-    # For simplicity, we allow any authenticated user to access this endpoint for now
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=403, detail="Only admins can access this endpoint")
 
     updated_permission = crud.update_user_permission(
         db, permission_id, permission)
@@ -80,8 +90,9 @@ async def delete_permission(
     current_user: User = Depends(get_current_user_dependency)
 ):
     """Admin endpoint: Delete a permission"""
-    # In a real application, you'd want to check if current_user is an admin
-    # For simplicity, we allow any authenticated user to access this endpoint for now
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=403, detail="Only admins can access this endpoint")
 
     if not crud.delete_user_permission(db, permission_id):
         raise HTTPException(status_code=404, detail="Permission not found")

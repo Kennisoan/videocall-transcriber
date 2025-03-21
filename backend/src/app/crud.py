@@ -81,6 +81,18 @@ def update_user_name(db: Session, user_id: int, name: str):
     return db_user
 
 
+def update_user_admin_status(db: Session, user_id: int, is_admin: bool):
+    """Update a user's admin status"""
+    db_user = get_user(db, user_id)
+    if db_user is None:
+        return None
+
+    db_user.is_admin = is_admin
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+
 # User Permission CRUD operations
 
 def get_user_permissions(db: Session, user_id: int):
@@ -93,8 +105,20 @@ def get_user_permission(db: Session, permission_id: int):
     return db.query(models.UserPermission).filter(models.UserPermission.id == permission_id).first()
 
 
+def user_has_permission_for_group(db: Session, user_id: int, group_name: str) -> bool:
+    """Check if a user already has permission for a specific group"""
+    return db.query(models.UserPermission)\
+             .filter(models.UserPermission.user_id == user_id,
+                     models.UserPermission.group_name == group_name)\
+             .first() is not None
+
+
 def create_user_permission(db: Session, permission: schemas.UserPermissionCreate, user_id: int):
     """Create a new permission for a user"""
+    # Check if permission already exists
+    if user_has_permission_for_group(db, user_id, permission.group_name):
+        return None
+
     db_permission = models.UserPermission(
         user_id=user_id,
         group_name=permission.group_name,
@@ -171,3 +195,13 @@ def check_recording_access(db: Session, user_id: int, recording_id: int) -> bool
                    .first()
 
     return permission is not None
+
+
+def get_unique_group_names(db: Session) -> List[str]:
+    """Get all unique group names from recordings table"""
+    groups = db.query(models.Recording.meeting_name)\
+        .filter(models.Recording.meeting_name.isnot(None))\
+        .distinct()\
+        .all()
+    # Filter out None values and extract strings
+    return [group[0] for group in groups if group[0]]

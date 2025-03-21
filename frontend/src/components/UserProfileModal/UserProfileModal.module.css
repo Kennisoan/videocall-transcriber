@@ -1,47 +1,15 @@
-.loaderContainer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 32px;
-  gap: 16px;
-  color: #666;
-  font-size: 14px;
+.modal {
+  width: min(95vw, 540px);
+  max-height: 85vh;
+  overflow-y: auto;
 }
 
-.spinner {
-  animation: spin 1.2s linear infinite;
-  color: #007aff;
+.modalContent {
+  padding: 0;
 }
 
-.buttonSpinner {
-  animation: spin 1.2s linear infinite;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes fadeIn {
-  0% {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.profileSection {
-  margin-bottom: 24px;
-  padding: 4px 0;
-  animation: fadeIn 0.3s ease-out;
+.userSection {
+  padding: 22px;
 }
 
 .userInfo {
@@ -50,33 +18,25 @@
   gap: 16px;
 }
 
-.userIcon {
+.avatar {
+  width: 48px;
+  height: 48px;
+  background-color: var(--color-surface);
+  color: var(--color-text-60);
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #5e7ce2, #007aff);
-  color: white;
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2);
-  flex-shrink: 0;
 }
 
 .userDetails {
-  display: flex;
-  flex-direction: column;
-}
-
-.usernameRow {
-  line-height: 1;
+  flex: 1;
 }
 
 .username {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
-  color: #000;
-  margin: 0;
+  color: var(--color-text);
 }
 
 .nameRow {
@@ -85,174 +45,419 @@
   gap: 8px;
 }
 
-.userFullName {
-  font-size: 15px;
-  color: #666;
-  margin: 0;
+.name {
+  font-size: 14px;
+  color: var(--color-text-60);
 }
 
-.nameForm {
+.editNameContainer {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 4px;
-}
-
-.nameForm input {
-  font-size: 15px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid #e1e1e1;
-  background-color: #f5f5f7;
   width: 100%;
-  transition: all 0.2s ease;
 }
 
-.nameForm input:focus {
+.nameInput {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  font-size: 14px;
+  background-color: var(--color-background);
+}
+
+.nameInput:focus {
   outline: none;
-  border-color: #007aff;
-  background-color: #fff;
-  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+  border-color: var(--color-primary);
 }
 
-.editButton,
-.saveButton {
+.actionButton {
+  background: transparent;
+  border: none;
+  padding: 6px;
+  border-radius: 6px;
+  color: var(--color-text-40);
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
+  transition: all 0.15s ease;
+}
+
+.actionButton:hover {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+}
+
+.divider {
+  margin: 0;
   border: none;
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
-  cursor: pointer;
-  color: #007aff;
-  transition: all 0.2s ease;
-}
-
-.editButton:hover,
-.saveButton:hover {
-  background-color: rgba(0, 122, 255, 0.1);
-}
-
-.editButton:active,
-.saveButton:active {
-  background-color: rgba(0, 122, 255, 0.2);
-  transform: scale(0.96);
-}
-
-.error,
-.success {
-  margin: 8px 0 0;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-  animation: fadeIn 0.3s ease-out;
-}
-
-.error {
-  background-color: rgba(255, 59, 48, 0.1);
-  color: #ff3b30;
-}
-
-.success {
-  background-color: rgba(52, 199, 89, 0.1);
-  color: #34c759;
-}
-
-.section {
-  margin-bottom: 24px;
-  animation: fadeIn 0.3s ease-out;
-  animation-delay: 0.05s;
-  opacity: 0;
-  animation-fill-mode: forwards;
+  border-top: 1px solid var(--color-border);
 }
 
 .sectionTitle {
   font-size: 16px;
   font-weight: 600;
-  color: #000;
-  margin: 0 0 16px;
+  margin: 0 0 16px 0;
+  color: var(--color-text);
 }
 
-.permissionsList {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 12px;
+.permissionsSection {
+  padding: 22px;
 }
 
-.permissionItem {
+.adminSection {
+  padding: 22px;
+}
+
+.sectionHeader {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  background-color: #f5f5f7;
-  border-radius: 10px;
-  transition: all 0.2s ease;
-}
-
-.permissionItem:hover {
-  background-color: #eeeef0;
-}
-
-.hashIcon {
-  color: #007aff;
-}
-
-.groupName {
-  flex: 1;
-  font-size: 14px;
-  color: #333;
-  font-weight: 500;
-}
-
-.editBadge {
-  font-size: 12px;
-  padding: 3px 8px;
-  background-color: rgba(0, 122, 255, 0.1);
-  color: #007aff;
-  border-radius: 4px;
-  font-weight: 500;
+  gap: 8px;
+  margin-bottom: 16px;
+  color: var(--color-text);
 }
 
 .noPermissions {
-  color: #666;
-  font-size: 14px;
-  line-height: 1.5;
-  background-color: #f5f5f7;
+  color: var(--color-text-60);
+  background-color: var(--color-surface);
   padding: 16px;
   border-radius: 10px;
-  border-left: 4px solid #007aff;
+  font-size: 14px;
+  text-align: center;
 }
 
-.actionSection {
-  animation: fadeIn 0.3s ease-out;
-  animation-delay: 0.1s;
-  opacity: 0;
-  animation-fill-mode: forwards;
+.searchContainer {
+  position: relative;
+  margin-bottom: 20px;
 }
 
-.logoutButton {
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-40);
+}
+
+.searchInput {
+  width: 100%;
+  padding: 10px 12px 10px 36px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background-color: var(--color-surface);
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.usersList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.userCard {
+  background-color: var(--color-surface);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.userCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.userCardInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.userCardAvatar {
+  width: 32px;
+  height: 32px;
+  background-color: var(--color-background);
+  color: var(--color-text-60);
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.userCardDetails {
+  display: flex;
+  flex-direction: column;
+}
+
+.cardUsername {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.cardName {
+  font-size: 12px;
+  color: var(--color-text-60);
+}
+
+.adminToggle {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: var(--color-surface);
+  color: var(--color-text-60);
+}
+
+.adminToggle.isAdmin {
+  background-color: rgba(var(--color-primary-rgb), 0.1);
+  color: var(--color-primary);
+}
+
+.userPermissions {
+  padding: 16px;
+}
+
+.permissionsTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  color: var(--color-text);
+}
+
+.permissionItems {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.permissionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background-color: var(--color-background);
+  font-size: 13px;
+  border-bottom: 1px dashed var(--color-border);
+}
+
+.groupName {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.permissionControls {
+  display: flex;
+  align-items: center;
   gap: 8px;
+}
+
+.editToggle {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: var(--color-surface);
+  color: var(--color-text-60);
+}
+
+.editToggle.canEdit {
+  background-color: rgba(52, 199, 89, 0.1);
+  color: #34c759;
+}
+
+.editBadge {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: rgba(52, 199, 89, 0.1);
+  color: #34c759;
+}
+
+.deleteButton {
+  padding: 4px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--color-text-40);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deleteButton:hover {
+  background-color: #ff3b30;
+  color: white;
+}
+
+.addPermissionForm {
+  margin-top: 12px;
+  padding: 14px;
+  background-color: var(--color-background);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.groupSelect {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  font-size: 14px;
+  color: var(--color-text);
+  background-color: var(--color-surface);
   width: 100%;
-  padding: 12px;
-  background-color: #f5f5f7;
-  color: #ff3b30;
+}
+
+.groupSelect:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.selectPermissionType {
+  display: flex;
+  margin-top: 4px;
+}
+
+.permissionTypeButton {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-text-60);
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.permissionTypeButton.active {
+  background-color: rgba(52, 199, 89, 0.1);
+  color: #34c759;
+  border-color: rgba(52, 199, 89, 0.2);
+}
+
+.formActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.saveButton {
+  flex: 1;
+  padding: 8px 12px;
   border: none;
   border-radius: 10px;
-  font-size: 15px;
+  background-color: var(--color-primary);
+  color: white;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.logoutButton:hover {
-  background-color: rgba(255, 59, 48, 0.1);
+.saveButton:hover {
+  background-color: var(--color-primary-dark, #0056b3);
 }
 
-.logoutButton:active {
-  transform: scale(0.98);
+.saveButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cancelButton {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancelButton:hover {
+  background-color: var(--color-background);
+}
+
+.addButton {
+  width: 100%;
+  padding: 10px;
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px dashed var(--color-border);
+  border-radius: 10px;
+  background-color: var(--color-background);
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.addButton:hover {
+  background-color: var(--color-surface);
+}
+
+.addButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.permissionItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background-color: var(--color-background);
+  border-radius: 10px;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.logoutButton {
+  margin: 22px;
+  padding: 12px;
+  width: calc(100% - 44px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: 12px;
+  background-color: #ff3b30;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }

@@ -27,6 +27,18 @@ def list_recordings(
     return [schemas.RecordingList.from_orm(recording) for recording in recordings]
 
 
+@router.get("/groups", response_model=List[str])
+def get_groups(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_dependency)
+):
+    """Get all unique group names from recordings (admin only)"""
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=403, detail="Only admins can access this endpoint")
+    return crud.get_unique_group_names(db)
+
+
 @router.get("/{recording_id}", response_model=schemas.Recording)
 def get_recording(
     recording_id: int,
